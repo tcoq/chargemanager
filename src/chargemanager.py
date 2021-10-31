@@ -49,10 +49,10 @@ def checkCloudyConditions(oldPowerRange, newPowerRange):
 
     # if powerrange jumps > 17 times up and down in 90*10 seconds (15 minutes), weather might be cloudy 
     if (cloudyWeatherProbabilityCount > 17):
-        logging.info("CloudyWeatherProbabilityCount [range: 0-90] is true with: " + str(cloudyWeatherProbabilityCount) + " newRange: " + str(newPowerRange) + " oldRange: " + str(oldPowerRange))
+        logging.debug("CloudyWeatherProbabilityCount [range: 0-90] is true with: " + str(cloudyWeatherProbabilityCount) + " newRange: " + str(newPowerRange) + " oldRange: " + str(oldPowerRange))
         return True
     else:
-        logging.info("CloudyWeatherProbabilityCount [range: 0-90] is false with: " + str(cloudyWeatherProbabilityCount) + " newRange: " + str(newPowerRange) + " oldRange: " + str(oldPowerRange))
+        logging.debug("CloudyWeatherProbabilityCount [range: 0-90] is false with: " + str(cloudyWeatherProbabilityCount) + " newRange: " + str(newPowerRange) + " oldRange: " + str(oldPowerRange))
         return False
 #
 # Calculte the efficient charging strategy
