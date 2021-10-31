@@ -33,6 +33,7 @@ NRGKICK_SETTING_URL = config.get('Nrgkick', 'settings.url')
 READ_WRITE_INTERVAL_SEC = 15
 
 retryCountStartCharging = 0
+retryDisconnectCount = 0
 readChargeStatusFromNRGKick = 0
 readChargeValueFromNRGKick = 0
 isConnected = 0
@@ -196,7 +197,7 @@ if __name__ == "__main__":
             availablePowerRange = 0
 
             actualPower = readAndUpdate()
-            # check if nrgkick is available / -1 indicates that nrgkick is not enabled
+            # check if nrgkick is available / -1 indicates that nrgkick is offline
             if (actualPower >= 0 and isConnected == 1):
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
                 cur = con.cursor()
@@ -251,16 +252,16 @@ if __name__ == "__main__":
                         logging.info("Try to set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue))
                         
                         # wait for nrg and car sync... this could take a while
-                        time.sleep(15)
+                        time.sleep(18)
                         actualPower = readAndUpdate()
 
-                        if (actualPower > 0 and chargingPossible == 1 or actualPower == 0 and chargingPossible == 0): 
+                        if ((actualPower > 0 and chargingPossible == 1) or (actualPower == 0 and chargingPossible == 0)): 
                             succesful = True
                             logging.info("Set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + " was sucessful! Retry-Count: " + str(x) )
                             break
                     if (succesful == False):
                         # if it was not succesful to start charging disable charging
-                        logging.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + " failed! Retry-Count: " + str(x) + " ")
+                        logging.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + " failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue))
                         disableChargeing()
                 # write into charging log
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -276,16 +277,21 @@ if __name__ == "__main__":
                     logging.error(traceback.format_exc()) 
                 cur.close()
                 con.close()
+                retryDisconnectCount = 0
             else:
-                try:
-                    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-                    cur = con.cursor()
-                    cur.execute("UPDATE nrgkick set connected = 0")
-                    con.commit()
-                except:
-                    logging.error(traceback.format_exc()) 
-                cur.close()
-                con.close()
+                # count retries and only disable after 3 times unavailable to avoid short network interrupts
+                if (retryDisconnectCount > 2):
+                    try:
+                        con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+                        cur = con.cursor()
+                        cur.execute("UPDATE nrgkick set connected = 0")
+                        con.commit()
+                        logging.info("Could not reach NRGKICK, set it now to disconnect status!")
+                    except:
+                        logging.error(traceback.format_exc()) 
+                    cur.close()
+                    con.close()
+                    retryDisconnectCount += 1
             time.sleep(READ_WRITE_INTERVAL_SEC)
             logging.debug("sleeped " + str(READ_WRITE_INTERVAL_SEC) + " seconds...")
     except KeyboardInterrupt:
