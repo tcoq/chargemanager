@@ -41,13 +41,13 @@ Please ensure that the Docker container is restarted every 24h to counteract any
 ## Documentation
 There are four different charge strategies:
 
-1. **Disabled / Offline**
+1. **Disabled / Offline**<br/>
   Charging is disabled if button is blue. If button is red and text is "Offline" NRGKICK is not available by the network.
-3. **Slow**
+3. **Slow**<br/>
   The car is charged immediately with low charge power until car is full and ignores PV production. (2760 watt, 2 phases or 4140 watt 3 phases)
-5. **Fast**
+5. **Fast**<br/>
   The car is charged immediately with high available charge power until car is full and ignores PV production. (6900 watt, 2 phases or 10350 watt 3 phases)
-7. **Tracked**
+7. **Tracked**<br/>
   Software tries to follow the free available PV power (taking into account the current house-consumption). Charing is started only if minimum house battery SOC threshold is reached until car is full. (you can configure thresholds in chargemanager.properties)
   
 The green color of the button indicates if charging is currently active:
