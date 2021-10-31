@@ -15,7 +15,7 @@ The advantages of this charging manager are as follows:
 ![picture alt](https://github.com/tcoq/chargemanager/blob/main/chargemanager.jpg?raw=true "Screenshot")
 
 ## Caution 
-The use of this software is at your own risk. It cannot be guarenteed that this project is completly bug free. In my environment the chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can happend and may cause damages to your existing hardware.
+The use of this software is at your own risk. It cannot be guarenteed that this project is completly bug free. In my environment chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can happend and may cause damages to your existing hardware.
 
 ## Security
 There are no security features implemented. Please make sure that the docker container is startet in a non public environment (your own network) with active firewall.
