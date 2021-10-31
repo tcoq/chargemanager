@@ -28,7 +28,7 @@ The chargemanger was tested with Storedge SE10K-RWS and BYD LVS 8.0 (production 
 The project is packaged in a configured docker container. You only need to check out the project and bulid the container like this way:
 
 1. Check out the project
-2. **IMPORTANT:** Check and edit /src/chargemanager.properties fit to your environment 
+2. **IMPORTANT:** Check and edit /src/chargemanager.properties to fit to your home environment 
 3. Move to the root folder of the project (where DOCKERFILE is located)
 4. Type: "docker build -t chargemanagerimage" to create the image
 5. Start the container like this "docker run --network="host" --volume /your/path/to/chargemanager/data:/data chargemanagerimage" (please notice that docker container need to have access to the network of the host to connect to Solaredge and NRGKICK)
