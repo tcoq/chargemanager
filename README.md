@@ -50,6 +50,6 @@ There are four different charge strategies:
 7. **Tracked**<br/>
   Software tries to follow the free available PV power (taking into account the current house-consumption). Charing is started only if minimum house battery SOC threshold is reached until car is full. (you can configure thresholds in chargemanager.properties)
   
-The green color of the button indicates if charging is currently active:
+The green color of the button indicates charging is currently active:
 
 ![picture alt](https://github.com/tcoq/chargemanager/blob/main/green.jpg?raw=true "Screenshot")
