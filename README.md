@@ -48,7 +48,7 @@ There are four different charge strategies:
 5. **Fast**<br/>
   The car is charged immediately with high available charge power until car is full and ignores PV production. (6900 watt, 2 phases or 10350 watt 3 phases)
 7. **Tracked**<br/>
-  Software tries to follow the free available PV power (taking into account the current house-consumption). Charing is started only if minimum house battery SOC threshold is reached until car is full. (you can configure thresholds in chargemanager.properties)
+  Software tries to follow the maximum free available PV power (taking into account the current house-consumption). Charging is started only if minimum house battery SOC threshold is reached and is done until car is full or free available power is no longer available. (you can configure thresholds in chargemanager.properties)
   
 The green color of the button indicates charging is currently active:
 
