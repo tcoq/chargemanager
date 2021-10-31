@@ -39,7 +39,7 @@ Recommendation:
 Please ensure that the Docker container is restarted every 24h to counteract any memory errors. The system cron is ideal for this, for example.
 
 ## Documentation
-There are four different charge strategies:
+There are three different charge strategies:
 
 1. **Disabled / Offline**<br/>
   Charging is disabled if button is blue. If button is red and text is "Offline" NRGKICK is not available by the network.
