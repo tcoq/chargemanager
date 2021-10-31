@@ -18,7 +18,7 @@ The advantages of this charging manager are as follows:
 The use of this software is at your own risk. It cannot be guarenteed that this project is completly bug free. In my environment chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can happend and may cause damages to your existing hardware.
 
 ## Security
-There are no security features implemented. Please make sure that the docker container is startet in a non public environment (your own network) with active firewall.
+There is no authentification feature implemented. Please make sure that the docker container is startet in a non public environment (your own network) with active firewall.
 
 ## Requirements
 The chargemanger was tested with Storedge SE10K-RWS and BYD LVS 8.0 (production year 2020) and NRGKICK + Connect (1st version, production year 2020, Connect is a extra bluetooth hardware) and VW ID.4 (2 phase charging). Other Solaredge inverters may have differences in the modbus protocol, which are not covered here. Individual modbus adjustments must be made by yourself. To use the chargemanger you only need a small linux server like raspberry or jetson nano with network access to Solaredge inverter and NRGKICK.
