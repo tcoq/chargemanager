@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.5/css/unicons.css">
+	<link href="{{ url_for('static', filename='css/style.css') }}"" rel="stylesheet" type="text/css">
+    <title>Charge control</title>
+	<script src="https://code.jquery.com/jquery-latest.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <script type="text/javascript">
+	
+      // Load the Visualization API and the corechart package
+      google.charts.load('current', {'packages':['corechart']});
+
+      // Set a callback for when the API is loaded
+      google.charts.setOnLoadCallback(this.drawChart.bind(this));
+	  
+      // This is the callback function which actually draws the chart
+      function drawChart() {
+	  
+		chartType = "LineChart";
+		containerId = "chart_div";
+		var options = {
+		interpolateNulls: true,
+		chartArea: {
+			height: 'auto'
+		},
+		height:450,
+		lineWidth: 3,
+		hAxis: {
+		  title: '',
+		  format: 'HH:mm',
+		  titleTextStyle:{color: '#ffffff',fontSize: 20},
+		  textStyle:{color: '#ffffff', fontSize: 20},
+		  gridlines: { color: 'transparent'},
+		  showTextEvery: 3
+		},
+		vAxis: {
+		  title: 'Watt',
+		  format: '0',
+		  titleTextStyle:{color: '#ffffff',fontSize: 20},
+		  textStyle:{color: '#ffffff', fontSize: 20}
+		},
+		legend: {textStyle: {color: 'gray', fontSize: 20}, position: 'bottom' },
+        backgroundColor: '#1e1e2f'
+		};
+		
+		data = new google.visualization.DataTable();
+		data.addColumn('datetime', 'Date');
+		data.addColumn('number', 'Production');
+		data.addColumn('number', 'Free');
+		data.addColumn('number', 'Charging');
+
+		$.each(JSON.parse({{tempdata|tojson|safe}}), function(index, row) {
+			var chargingrange = 0;
+			if (row[4] == 1) {
+				chargingrange = row[3];
+			}
+			data.addRow([
+			new Date(row[0].replace(/-/g, "/")),
+			(row[1]), (row[2]), chargingrange 
+			]);
+		});
+		
+		var dateFormatter = new google.visualization.DateFormat({pattern: 'HH:mm'});
+		dateFormatter.format(data, 0);
+		
+        google.visualization.drawChart({
+			"containerId": containerId,
+			"dataTable": data,
+			"chartType": chartType,
+			"options": options		
+		});
+      }
+    </script>
+	<script>
+	// self executing function here
+	function loadText() {
+		var inverterStatus = {{row[7]}}
+		var inverterStatusText = 'Inverter status: -'
+		if (inverterStatus == 1){
+			inverterStatusText = 'Inverter status: off'
+		}
+		else if (inverterStatus == 2){
+			inverterStatusText = 'Inverter status: Sleeping'
+		}
+		else if (inverterStatus == 3){
+			inverterStatusText = 'Inverter status: Starting'
+		}
+		else if (inverterStatus == 4){
+			inverterStatusText = 'Inverter status: Production'
+		}
+		else if (inverterStatus == 5){
+			inverterStatusText = 'Inverter status: Curtailed'
+		}
+		else if (inverterStatus == 6){
+			inverterStatusText = 'Inverter status: Shutting down'
+		}
+		else if (inverterStatus == 7){
+			inverterStatusText = 'Inverter status: Failure'
+		}
+		document.getElementById('inverterstatus').innerHTML = inverterStatusText;
+		
+		var nrgKickConnectedStatus = {{nrgkick[0]}}
+		
+		if (nrgKickConnectedStatus == 1) {
+			document.getElementById("trackedcharginglabel").style.display = "block";
+			document.getElementById("slowcharginglabel").style.display = "block";
+			document.getElementById("fastcharginglabel").style.display = "block";
+			document.getElementById("trackedcharging").style.display = "block";
+			document.getElementById("slowcharging").style.display = "block";
+			document.getElementById("fastcharging").style.display = "block";
+			/*document.getElementById("disabledcharginglabel").style.backgroundImage = 'linear-gradient(298deg, var(--dark-blue), var(--blue))';	*/
+			document.getElementById("disabledcharginglabel").innerHTML = "<i class='uil uil-moon'></i>Disabled";
+		}
+		else {
+			document.getElementById("trackedcharginglabel").style.display = "none";
+			document.getElementById("slowcharginglabel").style.display = "none";
+			document.getElementById("fastcharginglabel").style.display = "none";
+			document.getElementById("trackedcharging").style.display = "none";
+			document.getElementById("slowcharging").style.display = "none";
+			document.getElementById("fastcharging").style.display = "none";
+			document.getElementById("disabledcharginglabel").style.backgroundImage = 'linear-gradient(298deg, var(--dark-blue), var(--red))';
+			document.getElementById("disabledcharginglabel").innerHTML = "<i class='uil uil-moon'></i>Offline";			
+		}
+		
+		var nrgKickChargingStatus = {{nrgkick[2]}}
+
+		if (document.getElementById('trackedcharging').checked  == true) {
+			if (nrgKickChargingStatus == 1) {
+				document.getElementById("trackedcharginglabel").style.backgroundImage = 'linear-gradient(298deg, var(--dark-blue), var(--green))';	
+			}
+			else {
+				document.getElementById("trackedcharginglabel").style.backgroundImage = 'linear-gradient(298deg, var(--dark-blue), var(--blue))';
+			}
+		}
+		if (document.getElementById('slowcharging').checked  == true) {
+			if (nrgKickChargingStatus == 1) {
+				document.getElementById("slowcharginglabel").style.backgroundImage = 'linear-gradient(298deg, var(--dark-blue), var(--green))';	
+			}
+			else {
+				document.getElementById("slowcharginglabel").style.backgroundImage = 'linear-gradient(298deg, var(--dark-blue), var(--blue))';
+			}
+		}
+		if (document.getElementById('fastcharging').checked  == true) {
+			if (nrgKickChargingStatus == 1) {
+				document.getElementById("fastcharginglabel").style.backgroundImage = 'linear-gradient(298deg, var(--dark-blue), var(--green))';	
+			}
+			else {
+				document.getElementById("fastcharginglabel").style.backgroundImage = 'linear-gradient(298deg, var(--dark-blue), var(--blue))';
+			}
+		}
+	}
+</script>
+</head>
+<body onload="loadText()">
+<div class="content">
+	<center>
+	<h2 class="card" style="color:var(--grey)">CHARGEMANAGER</h2>
+	<div id="chart_div"></div>
+	<div style="padding:20px">CHARGING STRATEGY:</div>
+	<form action="/chargemode" method="POST" class="form-inline">
+	<input class="checkbox-tools" type="radio" id="disabledcharging" name="chargemode" value="0" onchange='this.form.submit();' {{disabledcharging}}>
+	<label class="for-checkbox-tools" for="disabledcharging" id="disabledcharginglabel"><i class="uil uil-moon"></i>Disabled</label>
+	<input class="checkbox-tools" type="radio" id="slowcharging" name="chargemode" value="2" onchange='this.form.submit();' {{slowcharging}}>
+	<label class="for-checkbox-tools" for="slowcharging" id="slowcharginglabel"><i class="uil uil-square"></i>Slow</label>
+	<input class="checkbox-tools" type="radio" id="fastcharging" name="chargemode" value="1" onchange='this.form.submit();' {{fastcharging}}>
+	<label class="for-checkbox-tools" for="fastcharging" id="fastcharginglabel"><i class="uil uil-plane"></i>Fast</label>
+	<input class="checkbox-tools" type="radio" id="trackedcharging" name="chargemode" value="3" onchange='this.form.submit();' {{trackedcharging}}>
+	<label class="for-checkbox-tools" for="trackedcharging" id="trackedcharginglabel"><i class="uil uil-sun"></i>Tracked</label>
+	</form>
+	<br><br>
+	<h2 class="card" style="color:var(--blue)">NRGKICK</h2>
+	<div>{{nrgkick[1]}} Watt</div>
+	<br>
+	<h2 class="card" style="color:red">SOLAREDGE</h2>
+    <div>Production: {{row[1]}} Watt</div>
+	<div>Consumption: {{row[2]}} Watt</div>
+	<div>Grid: {{row[3]}} Watt</div>
+	<div>Battery: {{row[4]}} Watt</div>
+    <div>Battery SOC: {{row[6]}} %</div>
+	<div>Temperature: {{row[5]}} C</div>
+	<div id="inverterstatus">-</div>
+	</center>
+	<br><br>
+</div>
+</body>
+</html>
