@@ -14,12 +14,6 @@ The advantages of this charging manager are as follows:
 
 ![picture alt](https://github.com/tcoq/chargemanager/blob/main/chargemanager.jpg?raw=true "Screenshot")
 
-## Caution 
-The use of this software is at your own risk. It cannot be guarenteed that this project is completly bug free. In my environment chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can happend and may cause damages to your existing hardware.
-
-## Security
-There is no authentification feature implemented. Please make sure that the docker container is startet in a non public environment (your own network) with active firewall.
-
 ## Requirements
 The chargemanger was tested with Storedge SE10K-RWS and BYD LVS 8.0 (production year 2020) and NRGKICK + Connect (1st version, production year 2020, Connect is a extra bluetooth hardware) and VW ID.4 (2 phase charging). Other Solaredge inverters may have differences in the modbus protocol, which are not covered here. Individual modbus adjustments must be made by yourself. To use the chargemanger you only need a small linux server like raspberry or jetson nano with network access to Solaredge inverter and NRGKICK.
 
@@ -56,3 +50,9 @@ The green color of the button indicates charging is currently active:
 ![picture alt](https://github.com/tcoq/chargemanager/blob/main/green.jpg?raw=true "Screenshot")
 
 The charge manager is currently optimized for 2 phase (16A) charging on private PV installation with 8,5-10 KW peak. 3 phase charging (16A) is also possible but your PV should have minimum 12KW peak, otherwise minimum charging is to high to get most out of your PV. 
+
+## Caution 
+The use of this software is at your own risk. It cannot be guarenteed that this project is completly bug free. In my environment chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can happend and may cause damages to your existing hardware.
+
+## Security
+There is no authentification feature implemented. Please make sure that the docker container is startet in a non public environment (your own network) with active firewall.
