@@ -5,9 +5,9 @@ Welcome to the chargemanager project, which implements a charging manager via so
 The advantages of this charging manager are as follows:
 
 * Web interface with controls for 3 different charging strategies
-* Automatic shutdown when the vehicle is fully charged
-* Display of the current charging curve in a graphic
-* Tabular display of the Solaredge data in near-realtime
+* Automatic stop when the vehicle is fully charged
+* Near realtime charging chart
+* Near realtime Solaredge inverter data
 * Possibility to distinguish between 2 or 3 phase charging
 * All values of the Solaredge inverter and the NRGKICK are stored in a SQLLite database and are available there for other evaluations
 
@@ -20,17 +20,17 @@ The use of this software is at your own risk. This is my private hobby project. 
 There are no security features implemented. Please make sure that the docker container is startet in a non public environment (your own network) with active firewall.
 
 ## Requirements
-The chargemanger was tested with Storedge SE10K-RWS and BYD LVS 8.0 (production year 2020) and NRGKICK + Connect (1st version production year 2020) and VW ID.4. Especially  other Solaredge inverters may have differences in the Modbus protocol which are not covered here. For this, individual adjustments must be made by yourself. To use the chargemanger you only need a small linux server like raspberry or jetson nano with network access to Solaredge inverter and NRGKICK.
+The chargemanger was tested with Storedge SE10K-RWS and BYD LVS 8.0 (production year 2020) and NRGKICK + Connect (1st version, production year 2020, Connect is a extra bluetooth hardware) and VW ID.4 (2 phase edition). Especially  other Solaredge inverters may have differences in the modbus protocol, which are not covered here. For this, individual adjustments must be made by yourself. To use the chargemanger you only need a small linux server like raspberry or jetson nano with network access to Solaredge inverter and NRGKICK.
 
 ## Installation
 
-The project is packaged in a configured Docker container. You only need to check out the project and bulid the container like this way:
+The project is packaged in a configured docker container. You only need to check out the project and bulid the container like this way:
 
 1. Check out the project
-2. Check and edit /src/chargemanager.properties fit to your environment 
+2. **IMPORTANT:** Check and edit /src/chargemanager.properties fit to your environment 
 3. Move to the root folder of the project (where DOCKERFILE is located)
 4. Type: "docker build -t chargemanagerimage" to create the image
-5. Then start the container like this "docker run --network="host" --volume /your/path/to/chargemanager/data:/data chargemanagerimage"
+5. Then start the container like this "docker run --network="host" --volume /your/path/to/chargemanager/data:/data chargemanagerimage" (please notice that the docker container need to have access to the network of the host to connect to Solaredge and NRGKICK)
 6. If everything is ok, you should see the webinterface when you type this into your browser: http://192.xxx.xxx.xxx:5000
 
 Important: "Watch out to mount data directory correctly to make database and logs available form host (outside docker client)
@@ -41,13 +41,13 @@ Please ensure that the Docker container is restarted every 24h to counteract any
 ## Documentation
 There are four different charge strategies:
 
-1. Disabled / Offline 
+1. **Disabled / Offline**
   Charging is disabled if button is blue. If button is red and text is "Offline" NRGKICK is not available by the network.
-3. Slow
+3. **Slow**
   The car is charged immediately with low charge power until car is full and ignores PV production. (2760 watt, 2 phases or 4140 watt 3 phases)
-5. Fast
+5. **Fast**
   The car is charged immediately with high available charge power until car is full and ignores PV production. (6900 watt, 2 phases or 10350 watt 3 phases)
-7. Tracked
+7. **Tracked**
   Software tries to follow the free available PV power (taking into account the current house-consumption). Charing is started only if minimum house battery SOC threshold is reached until car is full. (you can configure thresholds in chargemanager.properties)
   
 The green color of the button indicates if charging is currently active:
