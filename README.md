@@ -9,4 +9,10 @@ The advantages of this charging manager are as follows:
 * Display of the current charging curve in a graphic
 * Tabular display of the Solaredge data in near-realtime
 * Possibility to distinguish between 2 or 3 phase charging
-* All values of the Solaredge inverters and the NRGKICK are stored in a SQLLite database and are available there for other evaluations.
+* All values of the Solaredg inverter and the NRGKICK are stored in a SQLLite database and are available there for other evaluations
+
+![picture alt](https://github.com/tcoq/chargemanager/blob/main/chargemanager.jpg?raw=true "Screenshot")
+
+## Installation
+
+Das Projekt ist in einem fertig konfigurierten Docker-Container zusammengestellt. Ihr müsst euch das Projekt nur auschecken.
