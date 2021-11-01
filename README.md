@@ -52,7 +52,7 @@ The green color of the button indicates charging is currently active:
 The charge manager is currently optimized for 2 phase (16A) charging on private PV installation with 8,5-10 KW peak. 3 phase charging (16A) is also possible but your PV should have minimum 12KW peak, otherwise minimum charging is to high to get most out of your PV. 
 
 ## Caution 
-The use of this software is at your own risk. It cannot be guarenteed that this project is completly bug free. In my environment chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can happend and may cause damages to your existing hardware.
+The use of this software is at your own risk. In my environment chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can occur so please be careful and take a look into the logfiles in /data folder.
 
 ## Security
 There is no authentification feature implemented. Please make sure that the docker container is startet in a non public environment (your own network) with active firewall.
