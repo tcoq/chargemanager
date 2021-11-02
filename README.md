@@ -1,6 +1,6 @@
 # CHARGEMANAGER PROJECT 
 ## Introduction
-Welcome to the chargemanager project, which implements a charging manager via software that controls a NRGKICK charger to make optimal use of the charging power according to the available excess production of a Solaredge solar system without drawing energy from the grid.
+Welcome to the chargemanager project, which implements a electric car charging manager via software that controls a NRGKICK charger to make optimal use of the charging power according to the available excess production of a Solaredge solar system without drawing energy from the grid.
 
 The advantages of this charging manager are as follows:
 
@@ -21,17 +21,22 @@ The chargemanger was tested with Storedge SE10K-RWS and BYD LVS 8.0 (production 
 
 The project is packaged in a configured docker container. You only need to check out the project and bulid the container like this way:
 
-1. Clone the project ("git clone https://github.com/tcoq/chargemanager.git")
-2. **IMPORTANT:** Check and edit /src/chargemanager.properties to fit to your home environment 
+1. Clone the project git clone:
+  https://github.com/tcoq/chargemanager.git
+
+2. **IMPORTANT:** Check and edit /src/chargemanager.properties to configure your devices (IP adresses, ports, etc.) 
 3. Move to the root folder of the project (where DOCKERFILE is located)
-4. Type: "docker build -t chargemanagerimage" to create the image
-5. Start the container like this "docker run --network="host" --volume /your/path/to/chargemanager/data:/data chargemanagerimage" (please notice that docker container need to have access to the network of the host to connect to Solaredge and NRGKICK)
+4. Create the image:
+  docker build -t chargemanagerimage
+5. Start the container 
+  docker run --network="host" --volume /your/path/to/chargemanager/data:/data chargemanagerimage" 
+(please notice that docker container need to have access to the network of the host to connect to Solaredge and NRGKICK)
 6. If everything is ok, you should see the webinterface when you type this into your browser: http://192.xxx.xxx.xxx:5000
 
 Important: "Watch out to mount data directory correctly to make database and logs available form host (outside docker client)
 
 Recommendation: 
-Please ensure that the Docker container is restarted every 24h to counteract any memory errors. The system cron is ideal for this, for example.
+Please ensure that the Docker container is automatically restarted after system boot.
 
 ## Documentation
 There are three different charge strategies:
@@ -39,9 +44,9 @@ There are three different charge strategies:
 1. **Disabled / Offline**<br/>
   Charging is disabled if button is blue. If button is red and text is "Offline" NRGKICK is not available by the network.
 3. **Slow**<br/>
-  The car is charged immediately with low charge power until car is full. (this strategy ignores PV production) (2760 watt, 2 phases or 4140 watt 3 phases)
+  The car is charged immediately with low charge power (2760 watt, 2 phases or 4140 watt 3 phases) until car is full. (this strategy ignores Solar production) 
 5. **Fast**<br/>
-  The car is charged immediately with high available charge power until car is full. (this strategy PV production) (6900 watt, 2 phases or 10350 watt 3 phases)
+  The car is charged immediately with high charge power (6900 watt, 2 phases or 10350 watt 3 phases) until car is full. (this strategy ignores also Solar production) 
 7. **Tracked**<br/>
   Chargemanager tries to follow the maximum free available PV power (taking into account the current house-consumption). Charging is started only if minimum house battery SOC threshold is reached and is done until car is full or free available power is no longer available. (you can configure thresholds in chargemanager.properties)
   
@@ -52,7 +57,7 @@ The green color of the button indicates charging is currently active:
 The charge manager is currently optimized for 2 phase (16A) charging on private PV installation with 8,5-10 KW peak. 3 phase charging (16A) is also possible but your PV should have minimum 12KW peak, otherwise minimum charging is to high to get most out of your PV. 
 
 ## Caution 
-The use of this software is at your own risk. In my environment chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can occur so please be careful and take a look into the logfiles in /data folder.
+The use of this software is at your own risk. In my environment chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can occur, so please be careful and take a look into the logfiles in /data folder and webinterface.
 
 ## Security
 There is no authentification feature implemented. Please make sure that the docker container is startet in a non public environment (your own network) with active firewall.
