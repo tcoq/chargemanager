@@ -4,12 +4,13 @@ Welcome to the chargemanager project, which implements a electric car charging m
 
 The advantages of this charging manager are as follows:
 
-* Free photovoltaics-power tracked charging
+* Free photovoltaics-power tracked charging considering house consumption
 * Web interface with controls for 3 different charging strategies (slow, fast and tracked)
 * Automatic stop when the vehicle is fully charged
 * Near realtime charging chart
 * Near realtime Solaredge inverter data
-* Possibility to choose between 2 or 3 phase charging (1 phase is planned later)
+* Possibility to choose between 1, 2 or 3 phase charging
+* Auto detection for disabling phases via fuses
 * All values of the Solaredge inverter and the NRGKICK are stored in a SQLLite database and are available for other evaluations
 
 ![picture alt](https://github.com/tcoq/chargemanager/blob/main/chargemanager.jpg?raw=true "Screenshot")
@@ -44,11 +45,11 @@ There are three different charge strategies:
 1. **Disabled / Offline**<br/>
   Charging is disabled if button is blue. If button is red and text is "Offline" NRGKICK is not available by the network.
 3. **Slow**<br/>
-  The car is charged immediately with low charge power (2760 watt, 2 phases or 4140 watt 3 phases) until car is full. (this strategy ignores Solar production) 
+  The car is charged immediately with low charge power (1380 watt 1 phase, 2760 watt 2 phases or 4140 watt 3 phases) until car is full. (this strategy ignores Solar production) 
 5. **Fast**<br/>
-  The car is charged immediately with high charge power (6900 watt, 2 phases or 10350 watt 3 phases) until car is full. (this strategy ignores also Solar production) 
+  The car is charged immediately with high charge power (3450 watt 1 phase, 6900 watt, 2 phases or 10350 watt 3 phases) until car is full. (this strategy ignores also Solar production) 
 7. **Tracked**<br/>
-  Chargemanager tries to follow the maximum free available PV power (taking into account the current house-consumption). Charging is started only if minimum house battery SOC threshold is reached and is done until car is full or free available power is no longer available. (you can configure thresholds in chargemanager.properties)
+  Chargemanager tries to follow the maximum free available PV power (considering the current house-consumption). Charging is started only if minimum house battery SOC threshold is reached and is done until car is full or free available power is no longer available. (you can configure thresholds in chargemanager.properties)
   
 The green color of the button indicates charging is currently active:
 

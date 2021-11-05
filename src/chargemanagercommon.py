@@ -13,41 +13,80 @@ config = configparser.RawConfigParser()
 config.read('chargemanager.properties')
 PHASES = config.get('Car', 'charging.phases')
 
+def setPhases(value):
+    global PHASES
+    # property file defines max used phases / check this
+    propPhases = int(config.get('Car', 'charging.phases'))
+    if (value > propPhases):
+        PHASES = propPhases
+    else:
+        PHASES = value
+
+def getPhases():
+    return PHASES
 #
 # Calculating the right power range for a given power-value
 #
 def getPowerRange(currentAvailablePower):
     new_availablePowerRange = 0
-    if (int(PHASES) == 2):
+    if (int(getPhases()) == 1):
+                # todo: add more lower ranges
+        if (currentAvailablePower <= 1400):
+            new_availablePowerRange = 0
+        if (currentAvailablePower > 1400 and currentAvailablePower <= 1700):
+            new_availablePowerRange = 1400 # here we can start charging
+        if (currentAvailablePower > 1700 and currentAvailablePower <= 1900):
+            new_availablePowerRange = 1700
+        if (currentAvailablePower > 1900 and currentAvailablePower <= 2100):
+            new_availablePowerRange = 1900
+        if (currentAvailablePower > 2100 and currentAvailablePower <= 2350):
+            new_availablePowerRange = 2100
+        if (currentAvailablePower > 2350 and currentAvailablePower <= 2600):
+            new_availablePowerRange = 2350
+        if (currentAvailablePower > 2600 and currentAvailablePower <= 2800):
+            new_availablePowerRange = 2600
+        if (currentAvailablePower > 2800 and currentAvailablePower <= 3050):
+            new_availablePowerRange = 2800
+        if (currentAvailablePower > 3050 and currentAvailablePower <= 3300):
+            new_availablePowerRange = 3050
+        if (currentAvailablePower > 3300 and currentAvailablePower <= 3500):
+            new_availablePowerRange = 3300
+        if (currentAvailablePower > 3500):
+            new_availablePowerRange = 3500
+    elif (int(getPhases()) == 2):
+                # todo: add more lower ranges
         if (currentAvailablePower <= 1500):
             new_availablePowerRange = 0
-        if (currentAvailablePower > 1500 and currentAvailablePower <= 2150):
+        if (currentAvailablePower > 1500 and currentAvailablePower <= 2200):
             new_availablePowerRange = 1500
-        if (currentAvailablePower > 2150 and currentAvailablePower <= 2750):
+        if (currentAvailablePower > 2200 and currentAvailablePower <= 2800):
             new_availablePowerRange = 2000
-        if (currentAvailablePower > 2750 and currentAvailablePower <= 3250):
-            new_availablePowerRange = 2500
-        if (currentAvailablePower > 3250 and currentAvailablePower <= 3750):
-            new_availablePowerRange = 3000
-        if (currentAvailablePower > 3750 and currentAvailablePower <= 4250):
-            new_availablePowerRange = 3500
-        if (currentAvailablePower > 4250 and currentAvailablePower <= 4750):
-            new_availablePowerRange = 4000
-        if (currentAvailablePower > 4750 and currentAvailablePower <= 5150):
-            new_availablePowerRange = 4500
-        if (currentAvailablePower > 5150 and currentAvailablePower <= 5650):
-            new_availablePowerRange = 5000
-        if (currentAvailablePower > 5650 and currentAvailablePower <= 5950):
-            new_availablePowerRange = 5500
-        if (currentAvailablePower > 5950 and currentAvailablePower <= 6500):
-            new_availablePowerRange = 6000
-        if (currentAvailablePower > 6500):
+        if (currentAvailablePower > 2800 and currentAvailablePower <= 3300):
+            new_availablePowerRange = 2800 # here we can start charging
+        if (currentAvailablePower > 3300 and currentAvailablePower <= 3800):
+            new_availablePowerRange = 3300
+        if (currentAvailablePower > 3800 and currentAvailablePower <= 4200):
+            new_availablePowerRange = 3800
+        if (currentAvailablePower > 4200 and currentAvailablePower <= 4650):
+            new_availablePowerRange = 4200
+        if (currentAvailablePower > 4650 and currentAvailablePower <= 5100):
+            new_availablePowerRange = 4650
+        if (currentAvailablePower > 5100 and currentAvailablePower <= 5600):
+            new_availablePowerRange = 5100
+        if (currentAvailablePower > 5600 and currentAvailablePower <= 6050):
+            new_availablePowerRange = 5600
+        if (currentAvailablePower > 6050 and currentAvailablePower <= 6500):
+            new_availablePowerRange = 6050
+        if (currentAvailablePower > 6500 and currentAvailablePower <= 6950):
             new_availablePowerRange = 6500
-    elif (int(PHASES) == 3):
+        if (currentAvailablePower > 6950):
+            new_availablePowerRange = 6950
+    elif (int(getPhases()) == 3):
+        # todo: add more lower ranges
         if (currentAvailablePower <= 4200):
             new_availablePowerRange = 0
         if (currentAvailablePower > 4200 and currentAvailablePower <= 4900):
-            new_availablePowerRange = 4500 
+            new_availablePowerRange = 4500 # here we can start charging
         if (currentAvailablePower > 4900 and currentAvailablePower <= 5600):
             new_availablePowerRange = 5000 
         if (currentAvailablePower > 5600 and currentAvailablePower <= 6300):
@@ -72,28 +111,49 @@ def getPowerRange(currentAvailablePower):
 #
 def getCurrent(availablePowerRange):
     chargePowerValue = 6
-    if (PHASES == 2):
-        if (availablePowerRange == 2000):
+    if (getPhases() == 1):
+        if (availablePowerRange == 1400):
+            chargePowerValue = 6 # 1380 watt
+        elif (availablePowerRange == 1700):
+            chargePowerValue = 7 # 1610 watt
+        elif (availablePowerRange == 1900):
+            chargePowerValue = 8 # 1840 watt
+        elif (availablePowerRange == 2100):
+            chargePowerValue = 9 # 2070 watt
+        elif (availablePowerRange == 2350):
+            chargePowerValue = 10 # 2300 watt
+        elif (availablePowerRange == 2600):
+            chargePowerValue = 11 # 2530 watt
+        elif (availablePowerRange == 2800): 
+            chargePowerValue = 12 # 2760 watt
+        elif (availablePowerRange == 3050): 
+            chargePowerValue = 13 # 2990 watt
+        elif (availablePowerRange == 3300): 
+            chargePowerValue = 14 # 3220 watt
+        elif (availablePowerRange == 3500): 
+            chargePowerValue = 15 # 3450 watt
+    if (getPhases() == 2):
+        if (availablePowerRange == 2800):
             chargePowerValue = 6 # 2760 watt
-        elif (availablePowerRange == 2500):
-            chargePowerValue = 6 # 2760 watt
-        elif (availablePowerRange == 3000):
-            chargePowerValue = 7 # 3200 watt
-        elif (availablePowerRange == 3500):
+        elif (availablePowerRange == 3300):
+            chargePowerValue = 7 # 3220 watt
+        elif (availablePowerRange == 3800):
             chargePowerValue = 8 # 3680 watt
-        elif (availablePowerRange == 4000):
+        elif (availablePowerRange == 4200):
             chargePowerValue = 9 # 4140 watt
-        elif (availablePowerRange == 4500):
+        elif (availablePowerRange == 4650):
             chargePowerValue = 10 # 4600 watt
-        elif (availablePowerRange == 5000): 
+        elif (availablePowerRange == 5100): 
             chargePowerValue = 11 # 5060 watt
-        elif (availablePowerRange == 5500): 
+        elif (availablePowerRange == 5600): 
             chargePowerValue = 12 # 5520 watt
-        elif (availablePowerRange == 6000): 
+        elif (availablePowerRange == 6050): 
             chargePowerValue = 13 # 5980 watt
         elif (availablePowerRange == 6500): 
             chargePowerValue = 14 # 6440 watt
-    elif (PHASES == 3):
+        elif (availablePowerRange == 6950): 
+            chargePowerValue = 15 # 6900 watt
+    elif (getPhases() == 3):
         if (availablePowerRange == 4500):
             chargePowerValue = 6 # 4140 watt
         elif (availablePowerRange == 5000):

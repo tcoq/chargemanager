@@ -10,6 +10,8 @@ import time
 import traceback
 from chargemanagercommon import initDatabase
 from chargemanagercommon import getCurrent
+from chargemanagercommon import setPhases
+from chargemanagercommon import getPhases
 import logging
 import configparser
 
@@ -25,9 +27,8 @@ config.read('chargemanager.properties')
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename='/data/nrgkick.log', filemode='w', level=logging.INFO)
 log = logging.getLogger()
 
-PHASES = config.get('Car', 'charging.phases')
-NRGKICK_DATA_URL = config.get('Nrgkick', 'data.url')
-NRGKICK_SETTING_URL = config.get('Nrgkick', 'settings.url')
+NRGKICK_MEASUREMENTS_URL = config.get('Nrgkick', 'measurements.url')
+NRGKICK_SETTINGS_URL = config.get('Nrgkick', 'settings.url')
 
 # IMPORTANT: please check the dependencies on this value if you change it 
 READ_WRITE_INTERVAL_SEC = 15
@@ -76,7 +77,7 @@ def setChargingCurrent(currentValue,startCharging):
     """
     headers = {"Content-Type": "application/json"}
     try:
-        resp = requests.put(url=NRGKICK_SETTING_URL, data=json_current_value, headers=headers)
+        resp = requests.put(url=NRGKICK_SETTINGS_URL, data=json_current_value, headers=headers)
         logging.debug("Response start/stop charging: " + str(resp.status_code) + " " + str(json_current_value))
         http_status = resp.status_code
         resp.close()
@@ -93,7 +94,7 @@ def readAndUpdate():
     global readChargeStatusFromNRGKick, readChargeValueFromNRGKick, isConnected, retryCountStartCharging
 
     try:
-        resp = requests.get(url=NRGKICK_DATA_URL)
+        resp = requests.get(url=NRGKICK_MEASUREMENTS_URL)
     except:
         logging.info("Could not connect to nrg kick data")
         return -1
@@ -114,12 +115,28 @@ def readAndUpdate():
     chargingpower = int(float(general['ChargingPower']) * 1000)
     temperature = general['TemperatureMainUnit']
 
+    phase1 = general['VoltagePhase'][0]
+    phase2 = general['VoltagePhase'][1]
+    phase3 = general['VoltagePhase'][2]
+
     logging.debug(timestamp)
     logging.debug(chargingpower)
     logging.debug(temperature)
+    logging.debug(phase1)
+    logging.debug(phase2)
+    logging.debug(phase3)
+
+    totalVoltage = int(phase1) + int(phase2) + int(phase3)
+
+    if (totalVoltage > 600):
+        setPhases(3)
+    elif (totalVoltage > 400):
+        setPhases(2)
+    elif (totalVoltage > 200):
+        setPhases(1)
 
     try:
-        resp = requests.get(url=NRGKICK_SETTING_URL)
+        resp = requests.get(url=NRGKICK_SETTINGS_URL)
     except:
         logging.info("Could not connect to nrg kick settings")
         return -1
@@ -218,23 +235,14 @@ if __name__ == "__main__":
                 if (chargemode == 0):
                     # disabled mode
                     chargePowerValue = 6
-                    availablePowerRange = 0
                     chargingPossible = 0
                 elif (chargemode == 1):
                     # fast mode
                     chargePowerValue = 15
-                    if (int(PHASES) == 2):
-                        availablePowerRange = 6500
-                    elif (int(PHASES) == 3):
-                        availablePowerRange = 10000
                     chargingPossible = 1
                 elif (chargemode == 2):
                     # slow mode
                     chargePowerValue = 6
-                    if (int(PHASES) == 2):
-                        availablePowerRange = 2500
-                    elif (int(PHASES) == 3):
-                        availablePowerRange = 4500
                     chargingPossible = 1
                 else:
                     # efficient mode

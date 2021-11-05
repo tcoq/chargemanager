@@ -116,8 +116,10 @@ def calcEfficientChargingStrategy():
     
     minCharge = 0
     # get min charge threshold based on PHASES configuration from properties file
+    if (int(PHASES) == 1):
+        minCharge = 1400
     if (int(PHASES) == 2):
-        minCharge = 2500
+        minCharge = 2800
     elif (int(PHASES) == 3):
         minCharge = 4500
 
@@ -125,7 +127,7 @@ def calcEfficientChargingStrategy():
             newAvailablePowerRange = minCharge
 
     # enable charging when battery soc is high enougth and useful power is existing
-    if (int(soc) >= house_battery_soc_threshold_start_charging and currentAvailablePower > minCharge):
+    if (int(soc) >= house_battery_soc_threshold_start_charging and currentAvailablePower >= minCharge):
         chargingPossible = 1
         # allow to get 5% out of house-battery for stabel charging conditions
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc')) - 5
