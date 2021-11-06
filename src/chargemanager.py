@@ -9,6 +9,7 @@ import time
 import traceback
 from chargemanagercommon import initDatabase
 from chargemanagercommon import getPowerRange
+from chargemanagercommon import getPhases
 import logging
 import configparser
 
@@ -23,37 +24,19 @@ config.read('chargemanager.properties')
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename='/data/chargemanager.log', filemode='w', level=logging.INFO)
 log = logging.getLogger()
 
-PHASES = config.get('Car', 'charging.phases')
-
 # IMPORTANT: if you want to change this interval pls recalculate checkCloudyConditions!
 READ_INTERVAL_SEC = 10
 availablePowerRange = 0
 powerChangeCount = 0
-cloudyWeatherProbabilityCount = 0
 house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
 batteryProtectionCounter = 0
 
-def checkCloudyConditions(oldPowerRange, newPowerRange):
-    global cloudyWeatherProbabilityCount
-
-    # check if powerrange moves a lot, this might be an indicator for cloudy weather
-    if (newPowerRange < oldPowerRange):
-        # increase higher than decrease, to avoid to quick changes between cloudy or not
-        cloudyWeatherProbabilityCount +=4
-        if (cloudyWeatherProbabilityCount > (90)): 
-            cloudyWeatherProbabilityCount = (90)
-    else:
-        cloudyWeatherProbabilityCount -=1
-        if (cloudyWeatherProbabilityCount < 1): 
-            cloudyWeatherProbabilityCount = 0
-
-    # if powerrange jumps > 17 times up and down in 90*10 seconds (15 minutes), weather might be cloudy 
-    if (cloudyWeatherProbabilityCount > 17):
-        logging.debug("CloudyWeatherProbabilityCount [range: 0-90] is true with: " + str(cloudyWeatherProbabilityCount) + " newRange: " + str(newPowerRange) + " oldRange: " + str(oldPowerRange))
-        return True
-    else:
-        logging.debug("CloudyWeatherProbabilityCount [range: 0-90] is false with: " + str(cloudyWeatherProbabilityCount) + " newRange: " + str(newPowerRange) + " oldRange: " + str(oldPowerRange))
-        return False
+#
+# Not implemented now, returns everytime false
+#
+def checkCloudyConditions():
+    # check with sql derivation of solar power
+    return False
 #
 # Calculte the efficient charging strategy
 #
@@ -69,7 +52,7 @@ def calcEfficientChargingStrategy():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
     try:
-        cur.execute("select avg(availablepower_withoutcharging),avg(availablepowerrange),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-4 minute','localtime') AND datetime('now','localtime') UNION select avg(availablepower_withoutcharging),avg(availablepowerrange),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-10 minute','localtime') AND datetime('now','-4 minute','localtime')")
+        cur.execute("select avg(availablepower_withoutcharging),avg(availablepowerrange),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-4 minute','localtime') AND datetime('now','localtime') UNION select avg(availablepower_withoutcharging),avg(availablepowerrange),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-8 minute','localtime') AND datetime('now','-4 minute','localtime')")
         rows = cur.fetchall()
         first = True
         index = 0
@@ -111,23 +94,24 @@ def calcEfficientChargingStrategy():
     con.close()
 
     # check if weather is cloudy
-    cloudyConditions = checkCloudyConditions(previousAvailablePowerRange,newAvailablePowerRange)
+    cloudyConditions = checkCloudyConditions()
     # due to cloudy conditions we want to charge with low rates to increase stability
     
     minCharge = 0
     # get min charge threshold based on PHASES configuration from properties file
-    if (int(PHASES) == 1):
+    if (getPhases() == 1):
         minCharge = 1400
-    if (int(PHASES) == 2):
+    if (getPhases() == 2):
         minCharge = 2800
-    elif (int(PHASES) == 3):
+    elif (getPhases() == 3):
         minCharge = 4500
 
     if (cloudyConditions and newAvailablePowerRange >= minCharge):
             newAvailablePowerRange = minCharge
 
     # enable charging when battery soc is high enougth and useful power is existing
-    if (int(soc) >= house_battery_soc_threshold_start_charging and currentAvailablePower >= minCharge):
+    # soc == 0 means house-battery is disabled / not available
+    if ((int(soc) >= house_battery_soc_threshold_start_charging or int(soc) == 0) and currentAvailablePower >= minCharge):
         chargingPossible = 1
         # allow to get 5% out of house-battery for stabel charging conditions
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc')) - 5
@@ -157,10 +141,13 @@ def calcEfficientChargingStrategy():
 
     # if battery-consumption is very high, stop charging as soon as possible / 2 minutes (24 * 10 sec with ++2)
     if (batteryProtectionCounter > 24):
+        # set batteryProtectionCounter to 120 (120 * 10 = 1200 seconds) to wait at least 20 minutes for restarting charging
+        if (batteryProtectionCounter < 120):
+            batteryProtectionCounter = 120
         powerChangeCount = 10000
         availablePowerRange = 0
         chargingPossible = 0
-        logging.info("Battery protection activated, stop charging now!")
+        logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + batteryProtectionCounter)
 
     # guarantee stable power for at least 5 minutes and also avoid to start / stop charging to much
     if ((powerChangeCount >= (changeTimeSec / READ_INTERVAL_SEC))):
@@ -176,6 +163,7 @@ def calcEfficientChargingStrategy():
             logging.error(traceback.format_exc()) 
         cur.close()
         con.close()
+
         logging.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange))
 
     # check if ranges changes

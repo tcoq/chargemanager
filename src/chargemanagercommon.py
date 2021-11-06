@@ -23,16 +23,21 @@ def setPhases(value):
         PHASES = value
 
 def getPhases():
-    return PHASES
+    return int(PHASES)
 #
 # Calculating the right power range for a given power-value
 #
 def getPowerRange(currentAvailablePower):
     new_availablePowerRange = 0
     if (int(getPhases()) == 1):
-                # todo: add more lower ranges
-        if (currentAvailablePower <= 1400):
+        if (currentAvailablePower <= 500):
             new_availablePowerRange = 0
+        if (currentAvailablePower > 500 and currentAvailablePower <= 800):
+            new_availablePowerRange = 500 
+        if (currentAvailablePower > 800 and currentAvailablePower <= 1100):
+            new_availablePowerRange = 800 
+        if (currentAvailablePower > 1100 and currentAvailablePower <= 1400):
+            new_availablePowerRange = 1100 
         if (currentAvailablePower > 1400 and currentAvailablePower <= 1700):
             new_availablePowerRange = 1400 # here we can start charging
         if (currentAvailablePower > 1700 and currentAvailablePower <= 1900):
@@ -54,13 +59,18 @@ def getPowerRange(currentAvailablePower):
         if (currentAvailablePower > 3500):
             new_availablePowerRange = 3500
     elif (int(getPhases()) == 2):
-                # todo: add more lower ranges
-        if (currentAvailablePower <= 1500):
+        if (currentAvailablePower <= 500):
             new_availablePowerRange = 0
+        if (currentAvailablePower > 500 and currentAvailablePower <= 800):
+            new_availablePowerRange = 500 
+        if (currentAvailablePower > 800 and currentAvailablePower <= 1100):
+            new_availablePowerRange = 800 
+        if (currentAvailablePower > 1100 and currentAvailablePower <= 1500):
+            new_availablePowerRange = 1100 
         if (currentAvailablePower > 1500 and currentAvailablePower <= 2200):
             new_availablePowerRange = 1500
         if (currentAvailablePower > 2200 and currentAvailablePower <= 2800):
-            new_availablePowerRange = 2000
+            new_availablePowerRange = 2200
         if (currentAvailablePower > 2800 and currentAvailablePower <= 3300):
             new_availablePowerRange = 2800 # here we can start charging
         if (currentAvailablePower > 3300 and currentAvailablePower <= 3800):
@@ -83,8 +93,24 @@ def getPowerRange(currentAvailablePower):
             new_availablePowerRange = 6950
     elif (int(getPhases()) == 3):
         # todo: add more lower ranges
-        if (currentAvailablePower <= 4200):
+        if (currentAvailablePower <= 500):
             new_availablePowerRange = 0
+        if (currentAvailablePower > 500 and currentAvailablePower <= 800):
+            new_availablePowerRange = 500 
+        if (currentAvailablePower > 800 and currentAvailablePower <= 1100):
+            new_availablePowerRange = 800 
+        if (currentAvailablePower > 1100 and currentAvailablePower <= 1500):
+            new_availablePowerRange = 1100 
+        if (currentAvailablePower > 1500 and currentAvailablePower <= 2200):
+            new_availablePowerRange = 1500
+        if (currentAvailablePower > 2200 and currentAvailablePower <= 2800):
+            new_availablePowerRange = 2200
+        if (currentAvailablePower > 2800 and currentAvailablePower <= 3300):
+            new_availablePowerRange = 2800
+        if (currentAvailablePower > 3300 and currentAvailablePower <= 3800):
+            new_availablePowerRange = 3300
+        if (currentAvailablePower > 3800 and currentAvailablePower <= 4200):
+            new_availablePowerRange = 3800
         if (currentAvailablePower > 4200 and currentAvailablePower <= 4900):
             new_availablePowerRange = 4500 # here we can start charging
         if (currentAvailablePower > 4900 and currentAvailablePower <= 5600):
@@ -110,7 +136,7 @@ def getPowerRange(currentAvailablePower):
 # Calculating the right power current for a given powerrange
 #
 def getCurrent(availablePowerRange):
-    chargePowerValue = 6
+    chargePowerValue = 0
     if (getPhases() == 1):
         if (availablePowerRange == 1400):
             chargePowerValue = 6 # 1380 watt
