@@ -37,7 +37,6 @@ retryCountStartCharging = 0
 retryDisconnectCount = 0
 readChargeStatusFromNRGKick = 0
 readChargeValueFromNRGKick = 0
-isConnected = 0
 
 def boolToInt(input):
     if str(input).casefold() == 'true':
@@ -91,13 +90,13 @@ def setChargingCurrent(currentValue,startCharging):
 # returns actual nrgkick-power 
 #
 def readAndUpdate():
-    global readChargeStatusFromNRGKick, readChargeValueFromNRGKick, isConnected, retryCountStartCharging
+    global readChargeStatusFromNRGKick, readChargeValueFromNRGKick, retryCountStartCharging
     chargingpower = 0
     try:
         try:
             resp = requests.get(url=NRGKICK_MEASUREMENTS_URL)
         except:
-            logging.info("Could not connect to nrg kick data")
+            logging.debug("Could not connect to nrg kick data")
             return -1
         general = resp.json()
         resp.status_code
@@ -105,7 +104,7 @@ def readAndUpdate():
 
         try:
             if (general['Message'] == 'No content found for this request'):
-                logging.info("No NRG connected...")
+                logging.debug("No NRG connected...")
                 return -1
         except:
             # nrgkick is not connected but bluetooth device is available
@@ -139,15 +138,17 @@ def readAndUpdate():
         try:
             resp = requests.get(url=NRGKICK_SETTINGS_URL)
         except:
-            logging.info("Could not connect to nrg kick settings")
+            logging.debug("Could not connect to nrg kick settings")
             return -1
         settings = resp.json()
         resp.status_code
         resp.close()
-        
+
+
         try:
             errorcode = settings['Info']['ErrorCodes'][0]
-            isConnected = boolToInt(settings['Info']['Connected'])
+            # it seems to be that "Connected" status means Kick connect status to Nrgkick-cloud
+            notperisted = boolToInt(settings['Info']['Connected'])
             ischarging = boolToInt(settings['Values']['ChargingStatus']['Charging'])
             readChargeStatusFromNRGKick = ischarging
 
@@ -160,6 +161,9 @@ def readAndUpdate():
             logging.error(traceback.format_exc())
             return -1
 
+        # if reached this section we can communicate with NRGKICK and this means it is connected 
+        isConnected = 1
+        
         logging.debug(errorcode)
         logging.debug(ischarging)
         logging.debug(chargingcurrent)
@@ -218,7 +222,7 @@ if __name__ == "__main__":
 
             actualPower = readAndUpdate()
             # check if nrgkick is available / -1 indicates that nrgkick is offline
-            if (actualPower >= 0 and isConnected == 1):
+            if (actualPower >= 0):
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
                 cur = con.cursor()
                 try:

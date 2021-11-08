@@ -40,11 +40,21 @@ def checkCloudyConditions():
     global logCount
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
+
     stdDev = 0
+    trend = None
     try:
-        con.create_aggregate("stdev", 1, StdevFunc)
-        cur.execute("select stdev(pvprod) from modbus WHERE timestamp between datetime('now','-20 minute','localtime') AND datetime('now','localtime')")
-        stdDev = int(cur.fetchone()[0])
+        cur.execute("select pvprod from modbus WHERE timestamp between datetime('now','-20 minute','localtime') AND datetime('now','localtime') order by timestamp asc")
+        result = cur.fetchall()
+        data = [row[0] for row in result]
+        # calculate trend if trend[0] is negativ it is a negative trend otherwise it is a positve trend
+        trend = [b - a for a, b in zip(data[::1], data[1::1])]
+        # negative trend:
+        # we only want stddev calcs at negative trends...
+        if (int(trend[0]) <= 0):
+            con.create_aggregate("stdev", 1, StdevFunc)
+            cur.execute("select stdev(pvprod) from modbus WHERE timestamp between datetime('now','-20 minute','localtime') AND datetime('now','localtime')")
+            stdDev = int(cur.fetchone()[0])
     except:
         logging.error(traceback.format_exc())  
     cur.close()
@@ -52,11 +62,11 @@ def checkCloudyConditions():
 
     cloudy = False
 
-    if (stdDev > 270):
+    if (stdDev > 360):
         cloudy = True
 
     if (logCount % 3 == 0):
-        logging.info("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy))
+        logging.info("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy) + ", trend: " + str(trend[0]))
         logCount = 1
     else:
         logCount += 1
@@ -172,7 +182,7 @@ def calcEfficientChargingStrategy():
         powerChangeCount = 10000
         availablePowerRange = 0
         chargingPossible = 0
-        logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + batteryProtectionCounter)
+        logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter))
 
     # guarantee stable power for at least 5 minutes and also avoid to start / stop charging to much
     if ((powerChangeCount >= (changeTimeSec / READ_INTERVAL_SEC))):
