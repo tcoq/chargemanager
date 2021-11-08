@@ -10,6 +10,7 @@ import traceback
 from chargemanagercommon import initDatabase
 from chargemanagercommon import getPowerRange
 from chargemanagercommon import getPhases
+from chargemanagercommon import StdevFunc
 import logging
 import configparser
 
@@ -31,11 +32,35 @@ powerChangeCount = 0
 house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
 batteryProtectionCounter = 0
 
+logCount = 1
 #
-# Not implemented now, returns everytime false
+# Method checks the standard derivation of the solar production of the last 15 minutes
 #
 def checkCloudyConditions():
-    # check with sql derivation of solar power
+    global logCount
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    stdDev = 0
+    try:
+        con.create_aggregate("stdev", 1, StdevFunc)
+        cur.execute("select stdev(pvprod) from modbus WHERE timestamp between datetime('now','-20 minute','localtime') AND datetime('now','localtime')")
+        stdDev = int(cur.fetchone()[0])
+    except:
+        logging.error(traceback.format_exc())  
+    cur.close()
+    con.close()
+
+    cloudy = False
+
+    if (stdDev > 270):
+        cloudy = True
+
+    if (logCount % 3 == 0):
+        logging.info("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy))
+        logCount = 1
+    else:
+        logCount += 1
+    # TO_DO: edit when function is read for release
     return False
 #
 # Calculte the efficient charging strategy

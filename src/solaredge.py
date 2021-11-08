@@ -29,7 +29,7 @@ log = logging.getLogger()
 
 SOLAREDGE_INVERTER_IP = config.get('Solaredge', 'inverter.ip')
 READ_INTERVAL_SEC = 15
-logCount = 0
+logCount = 1
 
 # Reading & decoding data from modbus
 
@@ -138,9 +138,9 @@ def readModbus(client):
         logging.debug("House: " + str(house_consumption) + " DC: " + str(dc) + " DC scale factor: " + str(dc_scale_factor) + " DC power: " + str(dc_power) + " Temp: " + str(temp/100))
         logging.debug("Battery status: " + str(battery_status) + " Battery power: " + str(battery_power) + " SOC: " + str(soc) + " SOH:" + str(soh))
         logging.debug("PV production: " + str(pv_prod) + " available power: " + str(available_power) + " available power without battery / range: " + str(availablepower_withoutcharging) + "/" +  str(availablepowerrange) + " nrgkick power: " + str(nrgkick_power) + " inverterstatus:" + str(status))
-        logCount += 1
+        logCount = 1
     else:
-        logCount = 0
+        logCount += 1
 
 #
 #	Main, init and repeat reading

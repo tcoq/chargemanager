@@ -92,101 +92,104 @@ def setChargingCurrent(currentValue,startCharging):
 #
 def readAndUpdate():
     global readChargeStatusFromNRGKick, readChargeValueFromNRGKick, isConnected, retryCountStartCharging
-
+    chargingpower = 0
     try:
-        resp = requests.get(url=NRGKICK_MEASUREMENTS_URL)
-    except:
-        logging.info("Could not connect to nrg kick data")
-        return -1
-    general = resp.json()
-    resp.status_code
-    resp.close()
-
-    try:
-        if (general['Message'] == 'No content found for this request'):
-            logging.info("No NRG connected...")
+        try:
+            resp = requests.get(url=NRGKICK_MEASUREMENTS_URL)
+        except:
+            logging.info("Could not connect to nrg kick data")
             return -1
+        general = resp.json()
+        resp.status_code
+        resp.close()
+
+        try:
+            if (general['Message'] == 'No content found for this request'):
+                logging.info("No NRG connected...")
+                return -1
+        except:
+            # nrgkick is not connected but bluetooth device is available
+            pass
+
+        timestamp = general['Timestamp']
+        # convert value from kilowatt to watt
+        chargingpower = int(float(general['ChargingPower']) * 1000)
+        temperature = general['TemperatureMainUnit']
+
+        phase1 = general['VoltagePhase'][0]
+        phase2 = general['VoltagePhase'][1]
+        phase3 = general['VoltagePhase'][2]
+
+        logging.debug(timestamp)
+        logging.debug(chargingpower)
+        logging.debug(temperature)
+        logging.debug(phase1)
+        logging.debug(phase2)
+        logging.debug(phase3)
+
+        totalVoltage = int(phase1) + int(phase2) + int(phase3)
+
+        if (totalVoltage > 600):
+            setPhases(3)
+        elif (totalVoltage > 400):
+            setPhases(2)
+        elif (totalVoltage > 200):
+            setPhases(1)
+
+        try:
+            resp = requests.get(url=NRGKICK_SETTINGS_URL)
+        except:
+            logging.info("Could not connect to nrg kick settings")
+            return -1
+        settings = resp.json()
+        resp.status_code
+        resp.close()
+        
+        try:
+            errorcode = settings['Info']['ErrorCodes'][0]
+            isConnected = boolToInt(settings['Info']['Connected'])
+            ischarging = boolToInt(settings['Values']['ChargingStatus']['Charging'])
+            readChargeStatusFromNRGKick = ischarging
+
+            chargingcurrent = settings['Values']['ChargingCurrent']['Value']
+            readChargeValueFromNRGKick = chargingcurrent
+            chargingcurrentmin =settings['Values']['ChargingCurrent']['Min']
+            chargingcurrentmax =settings['Values']['ChargingCurrent']['Max']
+        except:
+            logging.error("Problems reading data from nrgkick!")
+            logging.error(traceback.format_exc())
+            return -1
+
+        logging.debug(errorcode)
+        logging.debug(ischarging)
+        logging.debug(chargingcurrent)
+        logging.debug(chargingcurrentmin)
+        logging.debug(chargingcurrentmax)
+
+        con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+        cur = con.cursor()
+        try:
+            nrg_update_sql = """
+            UPDATE 'nrgkick' SET 
+            timestamp = """ + str(timestamp) + "," + """
+            chargingpower = """ + str(chargingpower) + "," + """
+            temperature  = """ + str(temperature) + "," + """
+            errorcode = """ + str(errorcode) + "," + """
+            connected = """ + str(isConnected) + "," + """
+            ischarging = """ + str(ischarging) + "," + """
+            chargingcurrent = """ + str(chargingcurrent) + "," + """
+            chargingcurrentmin = """ + str(chargingcurrentmin) + "," + """
+            chargingcurrentmax = """ + str(chargingcurrentmax) + """
+            """
+            logging.debug(nrg_update_sql)
+            cur.execute(nrg_update_sql)
+            con.commit()
+        except:
+            logging.error(traceback.format_exc()) 
+        cur.close()
+        con.close() 
     except:
-        # nrgkick is not connected but bluetooth device is available
-        pass
-
-    timestamp = general['Timestamp']
-    # convert value from kilowatt to watt
-    chargingpower = int(float(general['ChargingPower']) * 1000)
-    temperature = general['TemperatureMainUnit']
-
-    phase1 = general['VoltagePhase'][0]
-    phase2 = general['VoltagePhase'][1]
-    phase3 = general['VoltagePhase'][2]
-
-    logging.debug(timestamp)
-    logging.debug(chargingpower)
-    logging.debug(temperature)
-    logging.debug(phase1)
-    logging.debug(phase2)
-    logging.debug(phase3)
-
-    totalVoltage = int(phase1) + int(phase2) + int(phase3)
-
-    if (totalVoltage > 600):
-        setPhases(3)
-    elif (totalVoltage > 400):
-        setPhases(2)
-    elif (totalVoltage > 200):
-        setPhases(1)
-
-    try:
-        resp = requests.get(url=NRGKICK_SETTINGS_URL)
-    except:
-        logging.info("Could not connect to nrg kick settings")
-        return -1
-    settings = resp.json()
-    resp.status_code
-    resp.close()
-    
-    try:
-        errorcode = settings['Info']['ErrorCodes'][0]
-        isConnected = boolToInt(settings['Info']['Connected'])
-        ischarging = boolToInt(settings['Values']['ChargingStatus']['Charging'])
-        readChargeStatusFromNRGKick = ischarging
-
-        chargingcurrent = settings['Values']['ChargingCurrent']['Value']
-        readChargeValueFromNRGKick = chargingcurrent
-        chargingcurrentmin =settings['Values']['ChargingCurrent']['Min']
-        chargingcurrentmax =settings['Values']['ChargingCurrent']['Max']
-    except:
-        logging.error("Problems reading data from nrgkick!")
-        logging.error(traceback.format_exc())
-        return -1
-
-    logging.debug(errorcode)
-    logging.debug(ischarging)
-    logging.debug(chargingcurrent)
-    logging.debug(chargingcurrentmin)
-    logging.debug(chargingcurrentmax)
-
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
-    try:
-        nrg_update_sql = """
-        UPDATE 'nrgkick' SET 
-        timestamp = """ + str(timestamp) + "," + """
-        chargingpower = """ + str(chargingpower) + "," + """
-        temperature  = """ + str(temperature) + "," + """
-        errorcode = """ + str(errorcode) + "," + """
-        connected = """ + str(isConnected) + "," + """
-        ischarging = """ + str(ischarging) + "," + """
-        chargingcurrent = """ + str(chargingcurrent) + "," + """
-        chargingcurrentmin = """ + str(chargingcurrentmin) + "," + """
-        chargingcurrentmax = """ + str(chargingcurrentmax) + """
-        """
-        logging.debug(nrg_update_sql)
-        cur.execute(nrg_update_sql)
-        con.commit()
-    except:
-        logging.error(traceback.format_exc()) 
-    cur.close()
-    con.close() 
+        logging.error(traceback.format_exc())  
     return chargingpower
 
 def disableChargeing():
@@ -269,7 +272,7 @@ if __name__ == "__main__":
                             break
                     if (succesful == False):
                         # if it was not succesful to start charging disable charging
-                        logging.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + " failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue))
+                        logging.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + " failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + availablePowerRange)
                         disableChargeing()
                 # write into charging log
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
