@@ -165,20 +165,20 @@ def calcEfficientChargingStrategy():
 
     # check if battery consumption is very high
     if (currentBatteryPower < (int(config.get('Chargemanager', 'battery.max_consumption')) * -1)):
-        batteryProtectionCounter += 2
-        if (batteryProtectionCounter > 200):
-            batteryProtectionCounter = 200
+        batteryProtectionCounter += 5
+        if (batteryProtectionCounter >= 120):
+            batteryProtectionCounter = 120
     else:
         # decrease slower than increase...
         batteryProtectionCounter -= 1
         if (batteryProtectionCounter <= 0):
             batteryProtectionCounter = 0
 
-    # if battery-consumption is very high, stop charging as soon as possible / 2 minutes (24 * 10 sec with ++2)
-    if (batteryProtectionCounter > 24):
-        # set batteryProtectionCounter to 120 (120 * 10 = 1200 seconds) to wait at least 20 minutes for restarting charging
-        if (batteryProtectionCounter < 120):
-            batteryProtectionCounter = 120
+    # if battery-consumption is very high, stop charging as soon as possible / 2 minutes 
+    # activation after 60 = 2minutes (120sec/10sec_interval * 5 = 60),
+    # deactvation after +10 minutes when upper battery consumption check is no longer true (batteryProtectionCounter = 120, 60*10sec_interval * 1))
+    if (batteryProtectionCounter > 60):
+        batteryProtectionCounter = 120
         powerChangeCount = 10000
         availablePowerRange = 0
         chargingPossible = 0

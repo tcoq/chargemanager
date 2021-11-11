@@ -144,11 +144,9 @@ def readAndUpdate():
         resp.status_code
         resp.close()
 
-
         try:
             errorcode = settings['Info']['ErrorCodes'][0]
-            # it seems to be that "Connected" status means Kick connect status to Nrgkick-cloud
-            notperisted = boolToInt(settings['Info']['Connected'])
+            isConnected = boolToInt(settings['Info']['Connected'])
             ischarging = boolToInt(settings['Values']['ChargingStatus']['Charging'])
             readChargeStatusFromNRGKick = ischarging
 
@@ -160,9 +158,6 @@ def readAndUpdate():
             logging.error("Problems reading data from nrgkick!")
             logging.error(traceback.format_exc())
             return -1
-
-        # if reached this section we can communicate with NRGKICK and this means it is connected 
-        isConnected = 1
         
         logging.debug(errorcode)
         logging.debug(ischarging)
@@ -201,6 +196,17 @@ def disableChargeing():
     cur = con.cursor()
     try:
         cur.execute("UPDATE controls SET chargemode = 0")
+        con.commit()
+    except:
+        logging.error(traceback.format_exc()) 
+    cur.close()
+    con.close()
+
+def setNrgkickDisconnected():
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        cur.execute("UPDATE nrgkick SET connected = 0")
         con.commit()
     except:
         logging.error(traceback.format_exc()) 
@@ -295,20 +301,14 @@ if __name__ == "__main__":
                 retryDisconnectCount = 0
             else:
                 # count retries and only disable after 3 times unavailable to avoid short network interrupts
-                if (retryDisconnectCount > 2):
-                    try:
-                        con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-                        cur = con.cursor()
-                        cur.execute("UPDATE nrgkick set connected = 0")
-                        con.commit()
+                retryDisconnectCount += 1
+                if (retryDisconnectCount == 3):
+                        setNrgkickDisconnected()
                         logging.info("Could not reach NRGKICK, set it now to disconnect status!")
-                    except:
-                        logging.error(traceback.format_exc()) 
-                    cur.close()
-                    con.close()
-                    retryDisconnectCount += 1
+                elif (retryCountStartCharging > 3):
+                        # wait 1 minutes after try to reconnect, to reduce heavy reconnect try if it seems to be disconnected
+                        time.sleep(60)
             time.sleep(READ_WRITE_INTERVAL_SEC)
-            logging.debug("sleeped " + str(READ_WRITE_INTERVAL_SEC) + " seconds...")
     except KeyboardInterrupt:
         pass
     
