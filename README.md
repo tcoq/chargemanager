@@ -28,9 +28,9 @@ The project is packaged in a configured docker container. You only need to check
 2. **IMPORTANT:** Check and edit /src/chargemanager.properties to configure your devices (IP adresses, ports, etc.) 
 3. Move to the root folder of the project (where DOCKERFILE is located)
 4. Create the image:
-  docker build -t chargemanagerimage
+  "docker build -t chargemanagerimage ."
 5. Start the container 
-  docker run --network="host" --volume /your/path/to/chargemanager/data:/data chargemanagerimage" 
+  "docker run --network="host" --volume /your/path/to/chargemanager/data:/data chargemanagerimage" 
 (please notice that docker container need to have access to the network of the host to connect to Solaredge and NRGKICK)
 6. If everything is ok, you should see the webinterface when you type this into your browser: http://192.xxx.xxx.xxx:5000
 

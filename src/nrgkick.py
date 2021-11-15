@@ -270,19 +270,20 @@ if __name__ == "__main__":
                             setChargingCurrent(chargePowerValue,True)
                         else:
                             setChargingCurrent(chargePowerValue,False)
-                        logging.info("Try to set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue))
+                        logging.info("Try to set start charging to: " + str(chargingPossible) + " and charge power value to: " + str(chargePowerValue) + "(A) Retry-Count: " + str(x))
                         
                         # wait for nrg and car sync... this could take a while
                         time.sleep(18)
                         actualPower = readAndUpdate()
+                        logging.info("Read actual charging power: " + str(actualPower) + " chargingPossible:" + str(chargingPossible))
 
                         if ((actualPower > 0 and chargingPossible == 1) or (actualPower == 0 and chargingPossible == 0)): 
                             succesful = True
-                            logging.info("Set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + " was sucessful! Retry-Count: " + str(x) )
+                            logging.info("Set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + "(watt) was sucessful! Retry-Count: " + str(x) )
                             break
                     if (succesful == False):
                         # if it was not succesful to start charging disable charging
-                        logging.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + " failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + availablePowerRange)
+                        logging.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange))
                         disableChargeing()
                 # write into charging log
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')

@@ -31,13 +31,14 @@ availablePowerRange = 0
 powerChangeCount = 0
 house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
 batteryProtectionCounter = 0
-
-logCount = 1
+batteryProtectionEnabled = False
+cloudyCounter = 0
+cloudyModeEnabled = False
 #
 # Method checks the standard derivation of the solar production of the last 15 minutes
 #
 def checkCloudyConditions():
-    global logCount
+    global logCount, cloudyCounter, cloudyModeEnabled
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
 
@@ -60,23 +61,34 @@ def checkCloudyConditions():
     cur.close()
     con.close()
 
+    # check if it is cloudy
+    if (stdDev > 360):
+        cloudyCounter += 5
+        if (cloudyCounter >= 120):
+            cloudyCounter = 120
+    else:
+        # decrease slower than increase...
+        cloudyCounter -= 1
+        if (cloudyCounter <= 0):
+            cloudyCounter = 0
+
     cloudy = False
 
-    if (stdDev > 360):
+    if (cloudyCounter > 60):
+        if (cloudyModeEnabled == False):
+            cloudyModeEnabled = True
+            cloudyCounter = 120
         cloudy = True
-
-    if (logCount % 3 == 0):
         logging.info("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy) + ", trend: " + str(trend[0]))
-        logCount = 1
     else:
-        logCount += 1
-    # TO_DO: edit when function is read for release
-    return False
+        cloudyModeEnabled = False
+
+    return cloudy
 #
 # Calculte the efficient charging strategy
 #
 def calcEfficientChargingStrategy():
-    global availablePowerRange,powerChangeCount, house_battery_soc_threshold_start_charging, batteryProtectionCounter
+    global availablePowerRange,powerChangeCount, house_battery_soc_threshold_start_charging, batteryProtectionCounter, batteryProtectionEnabled
     currentAvailablePower = 0
     previousAvailablePowerRange = 0
     newAvailablePowerRange = 0
@@ -176,13 +188,17 @@ def calcEfficientChargingStrategy():
 
     # if battery-consumption is very high, stop charging as soon as possible / 2 minutes 
     # activation after 60 = 2minutes (120sec/10sec_interval * 5 = 60),
-    # deactvation after +10 minutes when upper battery consumption check is no longer true (batteryProtectionCounter = 120, 60*10sec_interval * 1))
+    # deactvation after min. +10 minutes when upper battery consumption check is no longer true (60*10sec_interval * 1) = 600sec = 10min)
     if (batteryProtectionCounter > 60):
-        batteryProtectionCounter = 120
+        if (batteryProtectionEnabled == False):
+            batteryProtectionCounter = 120
+            batteryProtectionEnabled = True
         powerChangeCount = 10000
         availablePowerRange = 0
         chargingPossible = 0
         logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter))
+    else:
+        batteryProtectionEnabled = False
 
     # guarantee stable power for at least 5 minutes and also avoid to start / stop charging to much
     if ((powerChangeCount >= (changeTimeSec / READ_INTERVAL_SEC))):
