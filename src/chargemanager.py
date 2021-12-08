@@ -39,6 +39,9 @@ cloudyModeEnabled = False
 #
 def checkCloudyConditions():
     global logCount, cloudyCounter, cloudyModeEnabled
+    
+    cloudy = False
+    
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
 
@@ -47,6 +50,12 @@ def checkCloudyConditions():
     try:
         cur.execute("select pvprod from modbus WHERE timestamp between datetime('now','-20 minute','localtime') AND datetime('now','localtime') order by timestamp asc")
         result = cur.fetchall()
+        
+        if (len(result) <= 1):
+            cur.close()
+            con.close()
+            return cloudy
+
         data = [row[0] for row in result]
         # calculate trend if trend[0] is negativ it is a negative trend otherwise it is a positve trend
         trend = [b - a for a, b in zip(data[::1], data[1::1])]
@@ -71,8 +80,6 @@ def checkCloudyConditions():
         cloudyCounter -= 1
         if (cloudyCounter <= 0):
             cloudyCounter = 0
-
-    cloudy = False
 
     if (cloudyCounter > 60):
         if (cloudyModeEnabled == False):

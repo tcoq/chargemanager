@@ -78,7 +78,7 @@
 	<script>
 	// self executing function here
 	function loadText() {
-		var inverterStatus = {{row[7]}}
+		var inverterStatus = {{row[8]}}
 		var inverterStatusText = 'Inverter status: -'
 		if (inverterStatus == 1){
 			inverterStatusText = 'Inverter status: off'
@@ -180,7 +180,7 @@
 	<div>Consumption: {{row[2]}} Watt</div>
 	<div>Grid: {{row[3]}} Watt</div>
 	<div>Battery: {{row[4]}} Watt</div>
-    <div>Battery SOC: {{row[6]}} %</div>
+    <div>Battery SOC / SOH: {{row[6]}} % / {{row[7]}} %</div>
 	<div>Temperature: {{row[5]}} C</div>
 	<div id="inverterstatus">-</div>
 	</center>

@@ -9,31 +9,13 @@ import json
 import logging
 import configparser
 from chargemanagercommon import initDatabase
+from chargemanagercommon import getChargemode
 
 config = configparser.RawConfigParser()
 config.read('chargemanager.properties')
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename='/data/frontend.log', filemode='w', level=logging.INFO)
 server = Flask(__name__)
-
-#
-# Returns the actual set chargemode
-# 0 = disabled
-# 1 = fast
-# 2 = slow
-# 3 = tracked
-#
-def getChargemode():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
-    try:
-        cur.execute("SELECT chargemode FROM controls")
-        chargemode = cur.fetchone()
-    except:
-        chargemode = None
-    cur.close()
-    con.close()
-    return chargemode
 
 #
 # JSON data for GoogleChart input
@@ -63,7 +45,7 @@ def renderPage():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
     try:
-        cur.execute("SELECT timestamp,pvprod,houseconsumption,acpowertofromgrid,batterypower,temperature,soc,status FROM modbus order by timestamp desc LIMIT 1")
+        cur.execute("SELECT timestamp,pvprod,houseconsumption,acpowertofromgrid,batterypower,temperature,soc,soh,status FROM modbus order by timestamp desc LIMIT 1")
         row = cur.fetchone()
 
         cur.execute("SELECT connected,chargingpower,ischarging FROM nrgkick")

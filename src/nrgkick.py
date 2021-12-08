@@ -11,7 +11,7 @@ import traceback
 from chargemanagercommon import initDatabase
 from chargemanagercommon import getCurrent
 from chargemanagercommon import setPhases
-from chargemanagercommon import getPhases
+from chargemanagercommon import setChargemode
 import logging
 import configparser
 
@@ -189,18 +189,11 @@ def readAndUpdate():
         con.close() 
     except:
         logging.error(traceback.format_exc())  
-    return chargingpower
 
-def disableChargeing():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
-    try:
-        cur.execute("UPDATE controls SET chargemode = 0")
-        con.commit()
-    except:
-        logging.error(traceback.format_exc()) 
-    cur.close()
-    con.close()
+    if (isConnected == 0):
+        return -1   
+
+    return chargingpower
 
 def setNrgkickDisconnected():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -217,18 +210,25 @@ def setNrgkickDisconnected():
 #
 if __name__ == "__main__":
     os.environ['TZ'] = 'Europe/Berlin'
+    tz = pytz.timezone('Europe/Berlin')
     time.tzset()
     try:
         initDatabase()
+        kickWasStartedNow = False 
 
         while True:
             chargemode = 0
             chargingPossible = 0
             availablePowerRange = 0
-
+            
             actualPower = readAndUpdate()
             # check if nrgkick is available / -1 indicates that nrgkick is offline
             if (actualPower >= 0):
+                # if kick was enabled currently, there is a high propability user want to start charging (set it to slow)
+                if (kickWasStartedNow == False):
+                    setChargemode(2)
+                    kickWasStartedNow = True
+
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
                 cur = con.cursor()
                 try:
@@ -265,12 +265,12 @@ if __name__ == "__main__":
 
                 # check if NRG Kick status differs from target status
                 if (readChargeValueFromNRGKick != chargePowerValue or readChargeStatusFromNRGKick != chargingPossible):
-                    for x in range(2):
+                    for x in range(3):
                         if (chargingPossible == 1):
                             setChargingCurrent(chargePowerValue,True)
                         else:
                             setChargingCurrent(chargePowerValue,False)
-                        logging.info("Try to set start charging to: " + str(chargingPossible) + " and charge power value to: " + str(chargePowerValue) + "(A) Retry-Count: " + str(x))
+                        logging.info("Try to set start charging to: " + str(chargingPossible) + " and charge power value to: " + str(chargePowerValue) + " (A) Retry-Count: " + str(x))
                         
                         # wait for nrg and car sync... this could take a while
                         time.sleep(18)
@@ -279,20 +279,20 @@ if __name__ == "__main__":
 
                         if ((actualPower > 0 and chargingPossible == 1) or (actualPower == 0 and chargingPossible == 0)): 
                             succesful = True
-                            logging.info("Set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + "(watt) was sucessful! Retry-Count: " + str(x) )
+                            logging.info("Set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + " (watt) was sucessful! Retry-Count: " + str(x) )
                             break
                     if (succesful == False):
                         # if it was not succesful to start charging disable charging
                         logging.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange))
-                        disableChargeing()
+                        setChargemode(0)
                 # write into charging log
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
                 cur = con.cursor()
                 try:
                     tz = pytz.timezone('Europe/Berlin')
                     timestamp = datetime.now(tz)
-                    # TO-DO REFACTORING: replace availablePowerRange with real nrgkick charging value and
-                    # chargingPossible is a problem in this condition if car is full and sun is shining
+                    # TO-DO REFACTORING: 
+                    # chargingPossible is a problem in this condition if car is full and sun is shining / need to think about a better way for this tracking
                     cur.execute("INSERT INTO 'chargelog' (timestamp,currentChargingPower,chargingPossible) VALUES ('"+ str(timestamp) + "',"  + str(actualPower) + "," + str(chargingPossible) + ")")
                     con.commit()
                 except:
@@ -305,10 +305,13 @@ if __name__ == "__main__":
                 retryDisconnectCount += 1
                 if (retryDisconnectCount == 3):
                         setNrgkickDisconnected()
+                        kickWasStartedNow = False
                         logging.info("Could not reach NRGKICK, set it now to disconnect status!")
                 elif (retryCountStartCharging > 3):
-                        # wait 1 minutes after try to reconnect, to reduce heavy reconnect try if it seems to be disconnected
-                        time.sleep(60)
+                        # wait 30 seconds after try to reconnect, to reduce heavy reconnect try if it seems to be disconnected
+                        time.sleep(30)
+                        # avoid overloading counter
+                        retryCountStartCharging = 4
             time.sleep(READ_WRITE_INTERVAL_SEC)
     except KeyboardInterrupt:
         pass

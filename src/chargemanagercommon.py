@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 #
 import threading
-import time
 import logging
 import sqlite3
 import configparser 
 import math
+import traceback
 
 sem = threading.Semaphore()
 databaseInitialized = False
@@ -202,6 +202,49 @@ def getCurrent(availablePowerRange):
         elif (availablePowerRange == 10000): 
             chargePowerValue = 15 # 10350 watt
     return chargePowerValue
+
+#
+# Returns the actual set chargemode
+# 0 = disabled
+# 1 = fast
+# 2 = slow
+# 3 = tracked
+#
+def getChargemode():
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        cur.execute("SELECT chargemode FROM controls")
+        chargemode = cur.fetchone()
+    except:
+        chargemode = None
+    cur.close()
+    con.close()
+    return chargemode
+
+#
+# Set the actual set chargemode
+# 0 = disabled
+# 1 = fast
+# 2 = slow
+# 3 = tracked
+#
+def setChargemode(chargemode):
+
+    if (chargemode < 0 or chargemode > 3):
+        logging.error("Invaild chargemode: " + str(chargemode))
+        return
+
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        cur.execute("UPDATE controls SET chargemode = " + str(chargemode))
+        con.commit()
+    except:
+        logging.error(traceback.format_exc()) 
+    cur.close()
+    con.close()
+
 
 def initModbusTable():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
