@@ -48,7 +48,7 @@ def checkCloudyConditions():
     stdDev = 0
     trend = None
     try:
-        cur.execute("select pvprod from modbus WHERE timestamp between datetime('now','-20 minute','localtime') AND datetime('now','localtime') order by timestamp asc")
+        cur.execute("select pvprod from modbus WHERE timestamp between datetime('now','-15 minute','localtime') AND datetime('now','localtime') order by timestamp asc")
         result = cur.fetchall()
         
         if (len(result) <= 1):
@@ -63,7 +63,7 @@ def checkCloudyConditions():
         # we only want stddev calcs at negative trends...
         if (int(trend[0]) <= 0):
             con.create_aggregate("stdev", 1, StdevFunc)
-            cur.execute("select stdev(pvprod) from modbus WHERE timestamp between datetime('now','-20 minute','localtime') AND datetime('now','localtime')")
+            cur.execute("select stdev(pvprod) from modbus WHERE timestamp between datetime('now','-15 minute','localtime') AND datetime('now','localtime') AND pvprod > 10")
             stdDev = int(cur.fetchone()[0])
     except:
         logging.error(traceback.format_exc())  
@@ -71,22 +71,22 @@ def checkCloudyConditions():
     con.close()
 
     # check if it is cloudy
-    if (stdDev > 360):
-        cloudyCounter += 5
-        if (cloudyCounter >= 120):
-            cloudyCounter = 120
+    if (stdDev > 480):
+        cloudyCounter += 2
+        if (cloudyCounter >= 60):
+            cloudyCounter = 60
     else:
         # decrease slower than increase...
         cloudyCounter -= 1
         if (cloudyCounter <= 0):
             cloudyCounter = 0
 
-    if (cloudyCounter > 60):
+    if (cloudyCounter > 30):
         if (cloudyModeEnabled == False):
             cloudyModeEnabled = True
-            cloudyCounter = 120
+            cloudyCounter = 60
         cloudy = True
-        logging.info("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy) + ", trend: " + str(trend[0]))
+        logging.info("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy) + ", trend: " + str(trend[0]) + ", cloudyCnt: " + str(cloudyCounter) + ", cloudymodeEnabled: " + str(cloudyModeEnabled))
     else:
         cloudyModeEnabled = False
 

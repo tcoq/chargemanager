@@ -5,6 +5,7 @@ from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.payload import BinaryPayloadBuilder
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 import math
+import ctypes
 import sqlite3
 import logging
 import pytz, os
@@ -37,14 +38,18 @@ logCount = 1
 # size = amount for registers to read
 # typ =  int16 | uint16 | uint32 | float32
 def readData(client,address,size,typ):
-    logging.debug("client" + str(client))
+    #logging.debug("client" + str(client))
     request = client.read_holding_registers(address,size,unit=1)
     if (typ == "int16" or typ == "uint16"):
         decoder = BinaryPayloadDecoder.fromRegisters(request.registers,byteorder=Endian.Big)
-    if (typ == "uint32" or typ == "float32"):
+    if (typ == "uint32" or typ == "float32" or typ == "int64" or typ == "int32"):
         decoder = BinaryPayloadDecoder.fromRegisters(request.registers,Endian.Big,wordorder=Endian.Little)
     if (typ == "int16"):
         return decoder.decode_16bit_int()
+    if (typ == "int32"):
+        return decoder.decode_32bit_int()
+    if (typ == "int64"):
+        return decoder.decode_64bit_int()
     if (typ == "uint16"):
         return decoder.decode_16bit_uint()
     if (typ == "uint32"):
@@ -76,8 +81,10 @@ def readModbus(client):
 
     tz = pytz.timezone('Europe/Berlin')
     timestamp = datetime.now(tz)
-    ac = readData(client,40083,1,"int16")
-    ac_scale_factor = readData(client,40084,1,"int16")
+    # read two register in one operation to avoid that sf and value does not fit together
+    ac_one_operation = readData(client,40083,2,"int32")
+    ac = ctypes.c_int16(ac_one_operation & 0xffff).value
+    ac_scale_factor = ctypes.c_int16((ac_one_operation >> 16) & 0xffff).value
     ac_power = ac * math.pow(10, ac_scale_factor)
     ac_to_from_grid = readData(client,40206,1,"int16")
     ac_grid_scale_factor = readData(client,40210,1,"int16")
