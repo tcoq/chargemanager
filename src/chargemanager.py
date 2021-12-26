@@ -64,7 +64,9 @@ def checkCloudyConditions():
         if (int(trend[0]) <= 0):
             con.create_aggregate("stdev", 1, StdevFunc)
             cur.execute("select stdev(pvprod) from modbus WHERE timestamp between datetime('now','-15 minute','localtime') AND datetime('now','localtime') AND pvprod > 10")
-            stdDev = int(cur.fetchone()[0])
+            result = cur.fetchone()[0]
+            if (result != None):
+                stdDev = int(result)
     except:
         logging.error(traceback.format_exc())  
     cur.close()
