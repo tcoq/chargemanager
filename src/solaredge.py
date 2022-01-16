@@ -12,8 +12,7 @@ import pytz, os
 from datetime import datetime, timezone
 import time
 import traceback
-from chargemanagercommon import initDatabase
-from chargemanagercommon import getPowerRange
+import chargemanagercommon
 import configparser
 
 # --------------------------------------------------------------------------- #
@@ -129,7 +128,7 @@ def readModbus(client):
             # plausibility check: due to async read data nrg-kick can be read before house
             if (house_consumption >= nrgkick_power):
                 availablepower_withoutcharging = available_power + nrgkick_power
-            availablepowerrange = getPowerRange(availablepower_withoutcharging)
+            availablepowerrange = chargemanagercommon.getPowerRange(availablepower_withoutcharging)
             data_sql = "INSERT INTO 'modbus' (timestamp,pvprod,houseconsumption,acpower,acpowertofromgrid,dcpower,availablepower_withoutcharging,availablepowerrange,temperature,status,batterypower,batterystatus,soc,soh) VALUES ('"+ str(timestamp) + "',"  + str(pv_prod) + "," + str(house_consumption) + "," + str(ac_power) + "," + str(ac_to_from_grid) + "," + str(dc_power) + "," + str(availablepower_withoutcharging) + "," + str(availablepowerrange) + "," + str(temp/100) + "," + str(status) + "," + str(battery_power) + "," + str(battery_status) + "," + str(soc) + "," + str(soh) + ")"
             logging.debug(data_sql)
             cur.execute(data_sql)
@@ -155,8 +154,8 @@ def readModbus(client):
 if __name__ == "__main__":
     os.environ['TZ'] = 'Europe/Berlin'
     time.tzset()
+    chargemanagercommon.init()
 
-    initDatabase()
     try:
         while True:
             try:

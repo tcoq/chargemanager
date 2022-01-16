@@ -8,8 +8,7 @@ import pytz, os
 import json
 import logging
 import configparser
-from chargemanagercommon import initDatabase
-from chargemanagercommon import getChargemode
+import chargemanagercommon 
 
 config = configparser.RawConfigParser()
 config.read('chargemanager.properties')
@@ -51,7 +50,7 @@ def renderPage():
         cur.execute("SELECT connected,chargingpower,ischarging FROM nrgkick")
         nrgkick = cur.fetchone()
 
-        cur.execute("SELECT chargemode,availablePowerRange,chargingPossible FROM controls")
+        cur.execute("SELECT chargemode,availablePowerRange,chargingPossible,cloudy FROM controls")
         controls = cur.fetchone()
     except:
         logging.error(traceback.format_exc())  
@@ -60,19 +59,19 @@ def renderPage():
     if row == None or nrgkick == None or controls == None:
         return "No data" 
 
-    chargemode = getChargemode()
+    chargemode = chargemanagercommon.getChargemode()
     trackedcharging = ""
     fastcharging = ""
     slowcharging = ""
     disabledcharging = ""
 
-    if (chargemode[0] == 0):
+    if (chargemode == 0):
         disabledcharging = "checked"
-    elif (chargemode[0] == 1):
+    elif (chargemode == 1):
         fastcharging = "checked"
-    elif (chargemode[0] == 2):
+    elif (chargemode == 2):
         slowcharging = "checked"
-    elif (chargemode[0] == 3):
+    elif (chargemode == 3):
         trackedcharging = "checked"        
 
     return render_template('index.html', row = row, trackedcharging = trackedcharging , fastcharging = fastcharging, slowcharging=slowcharging, controls=controls, nrgkick=nrgkick, disabledcharging=disabledcharging, tempdata=getJSONForSolaredgeData())
@@ -97,7 +96,8 @@ if __name__ == "__main__":
     os.environ['TZ'] = 'Europe/Berlin'
     time.tzset()
     try:
-        initDatabase()
+        chargemanagercommon.init()
+
         server.run(host='0.0.0.0', port=config.get('Webinterface', 'web.port'))
     except KeyboardInterrupt:
         pass

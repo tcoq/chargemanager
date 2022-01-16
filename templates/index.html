@@ -104,6 +104,11 @@
 		document.getElementById('inverterstatus').innerHTML = inverterStatusText;
 		
 		var nrgKickConnectedStatus = {{nrgkick[0]}}
+		var cloudy = {{controls[3]}}
+		
+		if (cloudy == 1) {
+			document.getElementById('production').innerHTML += "<i class='uil uil-cloud'></i>";
+		}
 		
 		if (nrgKickConnectedStatus == 1) {
 			document.getElementById("trackedcharginglabel").style.display = "block";
@@ -176,7 +181,7 @@
 	<div>{{nrgkick[1]}} Watt</div>
 	<br>
 	<h2 class="card" style="color:red">SOLAREDGE</h2>
-    <div>Production: {{row[1]}} Watt</div>
+    <div id="production">Production: {{row[1]}} Watt</div>
 	<div>Consumption: {{row[2]}} Watt</div>
 	<div>Grid: {{row[3]}} Watt</div>
 	<div>Battery: {{row[4]}} Watt</div>

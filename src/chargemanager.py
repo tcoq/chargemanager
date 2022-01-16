@@ -7,10 +7,7 @@ from datetime import datetime, timezone
 
 import time
 import traceback
-from chargemanagercommon import initDatabase
-from chargemanagercommon import getPowerRange
-from chargemanagercommon import getPhases
-from chargemanagercommon import StdevFunc
+import chargemanagercommon
 import logging
 import configparser
 
@@ -28,7 +25,8 @@ log = logging.getLogger()
 # IMPORTANT: if you want to change this interval pls recalculate checkCloudyConditions!
 READ_INTERVAL_SEC = 10
 availablePowerRange = 0
-powerChangeCount = 0
+# init value with a high number to enable charging directly after software startup
+powerChangeCount = 10000
 house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
 batteryProtectionCounter = 0
 batteryProtectionEnabled = False
@@ -36,11 +34,14 @@ cloudyCounter = 0
 cloudyModeEnabled = False
 #
 # Method checks the standard derivation of the solar production of the last 15 minutes
+# returns :
+# 0 = not cloudy
+# 1 = cloudy
 #
 def checkCloudyConditions():
     global logCount, cloudyCounter, cloudyModeEnabled
     
-    cloudy = False
+    cloudy = 0
     
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
@@ -62,7 +63,7 @@ def checkCloudyConditions():
         # negative trend:
         # we only want stddev calcs at negative trends...
         if (int(trend[0]) <= 0):
-            con.create_aggregate("stdev", 1, StdevFunc)
+            con.create_aggregate("stdev", 1, chargemanagercommon.StdevFunc)
             cur.execute("select stdev(pvprod) from modbus WHERE timestamp between datetime('now','-15 minute','localtime') AND datetime('now','localtime') AND pvprod > 10")
             result = cur.fetchone()[0]
             if (result != None):
@@ -73,7 +74,7 @@ def checkCloudyConditions():
     con.close()
 
     # check if it is cloudy
-    if (stdDev > 480):
+    if (stdDev > 585):
         cloudyCounter += 2
         if (cloudyCounter >= 60):
             cloudyCounter = 60
@@ -83,11 +84,11 @@ def checkCloudyConditions():
         if (cloudyCounter <= 0):
             cloudyCounter = 0
 
-    if (cloudyCounter > 30):
+    if (cloudyCounter > 35):
         if (cloudyModeEnabled == False):
             cloudyModeEnabled = True
             cloudyCounter = 60
-        cloudy = True
+        cloudy = 1
         logging.info("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy) + ", trend: " + str(trend[0]) + ", cloudyCnt: " + str(cloudyCounter) + ", cloudymodeEnabled: " + str(cloudyModeEnabled))
     else:
         cloudyModeEnabled = False
@@ -130,12 +131,12 @@ def calcEfficientChargingStrategy():
 
             if (first):
                 # correct avg value from database
-                previousAvailablePowerRange = getPowerRange(temprow1)
+                previousAvailablePowerRange = chargemanagercommon.getPowerRange(temprow1)
             else:
                 # newer data
                 currentAvailablePower = temprow0
                 # correct avg value from database
-                newAvailablePowerRange = getPowerRange(temprow1)
+                newAvailablePowerRange = chargemanagercommon.getPowerRange(temprow1)
                 currentBatteryPower = temprow3
                 soc = temprow2
             if (index >= 2):
@@ -151,18 +152,20 @@ def calcEfficientChargingStrategy():
 
     # check if weather is cloudy
     cloudyConditions = checkCloudyConditions()
+    chargemanagercommon.setCloudy(cloudyConditions)
     # due to cloudy conditions we want to charge with low rates to increase stability
     
     minCharge = 0
     # get min charge threshold based on PHASES configuration from properties file
-    if (getPhases() == 1):
+    phases = chargemanagercommon.getPhases()
+    if (phases == 1):
         minCharge = 1400
-    if (getPhases() == 2):
+    elif (phases == 2):
         minCharge = 2800
-    elif (getPhases() == 3):
+    elif (phases == 3):
         minCharge = 4500
 
-    if (cloudyConditions and newAvailablePowerRange >= minCharge):
+    if ((cloudyConditions == 1) and newAvailablePowerRange >= minCharge):
             newAvailablePowerRange = minCharge
 
     # enable charging when battery soc is high enougth and useful power is existing
@@ -181,8 +184,8 @@ def calcEfficientChargingStrategy():
     # 5 minutes / 300 seconds
     changeTimeSec = 300
 
-    logging.debug("Current (set) available power: " + str(currentAvailablePower) + " previous range:" + str(previousAvailablePowerRange) + " new range:" + str(newAvailablePowerRange) + " availablePowerRange:" + str(availablePowerRange))
-    logging.debug("powerChangeCount: " + str(powerChangeCount) + " changeTimeSec:" + str(changeTimeSec) + " cloudy: " + str(cloudyConditions) + " currentBatteryPower: " + str(currentBatteryPower))
+    logging.info("Current (set) available power: " + str(currentAvailablePower) + " previous range:" + str(previousAvailablePowerRange) + " new range:" + str(newAvailablePowerRange) + " availablePowerRange:" + str(availablePowerRange) + " minCharge: " + str(minCharge) + " phase: " + str(chargemanagercommon.getPhases()))
+    logging.info("powerChangeCount: " + str(powerChangeCount) + " changeTimeSec:" + str(changeTimeSec) + " cloudy: " + str(cloudyConditions) + " currentBatteryPower: " + str(currentBatteryPower) + " chargingPossible: " + str(chargingPossible) + " soc: " + str(soc))
 
     # check if battery consumption is very high
     if (currentBatteryPower < (int(config.get('Chargemanager', 'battery.max_consumption')) * -1)):
@@ -255,8 +258,7 @@ def cleanupData():
 if __name__ == "__main__":
     os.environ['TZ'] = 'Europe/Berlin'
     time.tzset()
-
-    initDatabase()   
+    chargemanagercommon.init() 
     
     try:
         while True:

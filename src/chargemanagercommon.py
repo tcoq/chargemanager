@@ -2,35 +2,53 @@
 #
 import threading
 import logging
-import sqlite3
-import configparser 
+import sqlite3 
 import math
 import traceback
 
-sem = threading.Semaphore()
-databaseInitialized = False
+phases = 0
 
-config = configparser.RawConfigParser()
-config.read('chargemanager.properties')
-PHASES = config.get('Car', 'charging.phases')
+def init():
+    global databaseInitialized, sem
+    sem = threading.Semaphore()
+    databaseInitialized = False
+    sem.acquire()
+    if (databaseInitialized == False):
+        initModbusTable()
+        initControlsTable()
+        initNrgkicktable()
+        initChargelogTable()
+        databaseInitialized == True
+    sem.release()
 
 def setPhases(value):
-    global PHASES
-    # property file defines max used phases / check this
-    propPhases = int(config.get('Car', 'charging.phases'))
-    if (value > propPhases):
-        PHASES = propPhases
-    else:
-        PHASES = value
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        cur.execute("UPDATE nrgkick SET phases = " + str(value))
+        con.commit()
+    except:
+        logging.error(traceback.format_exc()) 
+    cur.close()
+    con.close()
 
 def getPhases():
-    return int(PHASES)
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        cur.execute("SELECT phases FROM nrgkick")
+        chargemode = cur.fetchone()
+    except:
+        chargemode = None
+    cur.close()
+    con.close()
+    return int(chargemode[0])
 #
 # Calculating the right power range for a given power-value
 #
 def getPowerRange(currentAvailablePower):
     new_availablePowerRange = 0
-    if (int(getPhases()) == 1):
+    if (getPhases() == 1):
         if (currentAvailablePower <= 500):
             new_availablePowerRange = 0
         if (currentAvailablePower > 500 and currentAvailablePower <= 800):
@@ -59,7 +77,7 @@ def getPowerRange(currentAvailablePower):
             new_availablePowerRange = 3300
         if (currentAvailablePower > 3500):
             new_availablePowerRange = 3500
-    elif (int(getPhases()) == 2):
+    elif (getPhases() == 2):
         if (currentAvailablePower <= 500):
             new_availablePowerRange = 0
         if (currentAvailablePower > 500 and currentAvailablePower <= 800):
@@ -92,7 +110,7 @@ def getPowerRange(currentAvailablePower):
             new_availablePowerRange = 6500
         if (currentAvailablePower > 6950):
             new_availablePowerRange = 6950
-    elif (int(getPhases()) == 3):
+    elif (getPhases() == 3):
         # todo: add more lower ranges
         if (currentAvailablePower <= 500):
             new_availablePowerRange = 0
@@ -245,6 +263,44 @@ def setChargemode(chargemode):
     cur.close()
     con.close()
 
+#
+# Returns cloudy status
+# 0 = not cloudy
+# 1 = cloudy
+# -1 = error
+def getCloudy():
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        cur.execute("SELECT cloudy FROM controls")
+        cloudy = cur.fetchone()
+    except:
+        return -1
+    cur.close()
+    con.close()
+    return int(cloudy[0])
+
+#
+# Set the if it is cloudy
+# 0 = not cloudy
+# 1 = cloudy
+#
+def setCloudy(cloudy):
+
+    if (cloudy < 0 or cloudy > 1):
+        logging.error("Invaild cloudy pareameter: " + str(cloudy))
+        return
+
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        cur.execute("UPDATE controls SET cloudy = " + str(cloudy))
+        con.commit()
+    except:
+        logging.error(traceback.format_exc()) 
+    cur.close()
+    con.close()
+
 
 def initModbusTable():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -288,7 +344,8 @@ def initNrgkicktable():
     ischarging integer NOT NULL,
     chargingcurrent REAL NOT NULL,
     chargingcurrentmin REAL NOT NULL,
-    chargingcurrentmax REAL NOT NULL)"""
+    chargingcurrentmax REAL NOT NULL,
+    phases integer NOT NULL)"""
     try:
         cur.execute(nrgkick_sql)
         con.commit()
@@ -308,7 +365,8 @@ def initNrgkicktable():
             ischarging,
             chargingcurrent,
             chargingcurrentmin,
-            chargingcurrentmax) VALUES (0,0,0,0,0,0,0,0,0)
+            chargingcurrentmax,
+            phases) VALUES (0,0,0,0,0,0,0,0,0,1)
             """
             cur.execute(nrg_insert_sql)
             con.commit()
@@ -347,7 +405,8 @@ def initControlsTable():
         CREATE TABLE IF NOT EXISTS controls (
         chargemode integer NOT NULL,
         availablePowerRange integer NOT NULL,
-        chargingPossible integer NOT NULL
+        chargingPossible integer NOT NULL,
+        cloudy integer NOT NULL
         )"""
         cur.execute(controls_sql)
 
@@ -357,23 +416,12 @@ def initControlsTable():
         # check if there are data otherwise init
         if (chargemode == None):
             # default = 0 (disabled)
-            cur.execute("INSERT INTO 'controls' (chargemode,availablePowerRange,chargingPossible) VALUES (0,0,0)")
+            cur.execute("INSERT INTO 'controls' (chargemode,availablePowerRange,chargingPossible,cloudy) VALUES (0,0,0,0)")
             con.commit()
     except:
         logging.error(traceback.format_exc()) 
     cur.close()
     con.close()
-
-def initDatabase():
-    global databaseInitialized
-    sem.acquire()
-    if (databaseInitialized == False):
-        initModbusTable()
-        initControlsTable()
-        initNrgkicktable()
-        initChargelogTable()
-        databaseInitialized == True
-    sem.release()
 
 class StdevFunc:
     def __init__(self):

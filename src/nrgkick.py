@@ -8,10 +8,7 @@ from datetime import datetime, timezone
 
 import time
 import traceback
-from chargemanagercommon import initDatabase
-from chargemanagercommon import getCurrent
-from chargemanagercommon import setPhases
-from chargemanagercommon import setChargemode
+import chargemanagercommon
 import logging
 import configparser
 
@@ -129,11 +126,11 @@ def readAndUpdate():
         totalVoltage = int(phase1) + int(phase2) + int(phase3)
 
         if (totalVoltage > 600):
-            setPhases(3)
+            chargemanagercommon.setPhases(3)
         elif (totalVoltage > 400):
-            setPhases(2)
+            chargemanagercommon.setPhases(2)
         elif (totalVoltage > 200):
-            setPhases(1)
+            chargemanagercommon.setPhases(1)
 
         try:
             resp = requests.get(url=NRGKICK_SETTINGS_URL)
@@ -213,7 +210,7 @@ if __name__ == "__main__":
     tz = pytz.timezone('Europe/Berlin')
     time.tzset()
     try:
-        initDatabase()
+        chargemanagercommon.init()
         kickWasStartedNow = False 
 
         while True:
@@ -226,7 +223,7 @@ if __name__ == "__main__":
             if (actualPower >= 0):
                 # if kick was enabled currently, there is a high propability user want to start charging (set it to slow)
                 if (kickWasStartedNow == False):
-                    setChargemode(2)
+                    chargemanagercommon.setChargemode(2)
                     kickWasStartedNow = True
 
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -259,7 +256,7 @@ if __name__ == "__main__":
                     chargingPossible = 1
                 else:
                     # efficient mode
-                    chargePowerValue = getCurrent(availablePowerRange)
+                    chargePowerValue = chargemanagercommon.getCurrent(availablePowerRange)
                 
                 succesful = False
 
@@ -284,7 +281,7 @@ if __name__ == "__main__":
                     if (succesful == False):
                         # if it was not succesful to start charging disable charging
                         logging.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange))
-                        setChargemode(0)
+                        chargemanagercommon.setChargemode(0)
                 # write into charging log
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
                 cur = con.cursor()
