@@ -87,7 +87,6 @@ def setChargemode():
         con.commit()
     except:
         logging.error(traceback.format_exc()) 
-
     cur.close()
     con.close()
     return redirect(url_for('renderPage'))

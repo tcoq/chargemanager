@@ -124,12 +124,13 @@ def readAndUpdate():
         logging.debug(phase3)
 
         totalVoltage = int(phase1) + int(phase2) + int(phase3)
-
-        if (totalVoltage > 600):
+        # read phases to avoid unnecessary writes
+        phases = chargemanagercommon.getPhases()
+        if (totalVoltage > 600 and phases != 3):
             chargemanagercommon.setPhases(3)
-        elif (totalVoltage > 400):
+        elif (totalVoltage > 400 and phases != 2):
             chargemanagercommon.setPhases(2)
-        elif (totalVoltage > 200):
+        elif (totalVoltage > 200 and phases != 1):
             chargemanagercommon.setPhases(1)
 
         try:

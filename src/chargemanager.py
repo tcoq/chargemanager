@@ -51,9 +51,8 @@ def checkCloudyConditions():
     try:
         cur.execute("select pvprod from modbus WHERE timestamp between datetime('now','-15 minute','localtime') AND datetime('now','localtime') order by timestamp asc")
         result = cur.fetchall()
-        
+        cur.close()
         if (len(result) <= 1):
-            cur.close()
             con.close()
             return cloudy
 
@@ -63,15 +62,16 @@ def checkCloudyConditions():
         # negative trend:
         # we only want stddev calcs at negative trends...
         if (int(trend[0]) <= 0):
+            cur = con.cursor()
             con.create_aggregate("stdev", 1, chargemanagercommon.StdevFunc)
             cur.execute("select stdev(pvprod) from modbus WHERE timestamp between datetime('now','-15 minute','localtime') AND datetime('now','localtime') AND pvprod > 10")
             result = cur.fetchone()[0]
+            cur.close()
             if (result != None):
                 stdDev = int(result)
     except:
-        logging.error(traceback.format_exc())  
-    cur.close()
-    con.close()
+        logging.error(traceback.format_exc()) 
+    con.close() 
 
     # check if it is cloudy
     if (stdDev > 585):
@@ -111,6 +111,9 @@ def calcEfficientChargingStrategy():
     try:
         cur.execute("select avg(availablepower_withoutcharging),avg(availablepowerrange),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-4 minute','localtime') AND datetime('now','localtime') UNION select avg(availablepower_withoutcharging),avg(availablepowerrange),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-8 minute','localtime') AND datetime('now','-4 minute','localtime')")
         rows = cur.fetchall()
+        cur.close()
+        con.close()
+
         first = True
         index = 0
         for row in rows:
@@ -147,12 +150,12 @@ def calcEfficientChargingStrategy():
             first = False
     except:
         logging.error(traceback.format_exc())  
-    cur.close()
-    con.close()
 
     # check if weather is cloudy
     cloudyConditions = checkCloudyConditions()
-    chargemanagercommon.setCloudy(cloudyConditions)
+    # avoid unnecessary writes
+    if (chargemanagercommon.getCloudy != cloudyConditions):
+        chargemanagercommon.setCloudy(cloudyConditions)
     # due to cloudy conditions we want to charge with low rates to increase stability
     
     minCharge = 0

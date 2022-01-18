@@ -21,6 +21,10 @@ def init():
         databaseInitialized == True
     sem.release()
 
+#
+# Sets the current number of available phases at the charger
+# Possible values 1-3
+#
 def setPhases(value):
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
@@ -32,6 +36,11 @@ def setPhases(value):
     cur.close()
     con.close()
 
+#
+# Returns the current number of available phases by the charger
+# 
+# Returns: 1-3 or -1 for errors
+#
 def getPhases():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
@@ -39,7 +48,7 @@ def getPhases():
         cur.execute("SELECT phases FROM nrgkick")
         chargemode = cur.fetchone()
     except:
-        chargemode = None
+        return -1
     cur.close()
     con.close()
     return int(chargemode[0])
@@ -227,7 +236,7 @@ def getCurrent(availablePowerRange):
 # 1 = fast
 # 2 = slow
 # 3 = tracked
-#
+#-1 = error
 def getChargemode():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
@@ -235,10 +244,10 @@ def getChargemode():
         cur.execute("SELECT chargemode FROM controls")
         chargemode = cur.fetchone()
     except:
-        chargemode = None
+        return -1
     cur.close()
     con.close()
-    return chargemode
+    return int(chargemode[0])
 
 #
 # Set the actual set chargemode
@@ -286,7 +295,6 @@ def getCloudy():
 # 1 = cloudy
 #
 def setCloudy(cloudy):
-
     if (cloudy < 0 or cloudy > 1):
         logging.error("Invaild cloudy pareameter: " + str(cloudy))
         return
