@@ -13,6 +13,10 @@ import chargemanagercommon
 config = configparser.RawConfigParser()
 config.read('chargemanager.properties')
 
+AUTHENTICATION_ENABLED = config.get('Webinterface', 'authentication.enabled')
+SECRET_PARAMETER = config.get('Webinterface', 'secret.parameter')
+SECRET_KEY = config.get('Webinterface', 'secret.key')
+
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename='/data/frontend.log', filemode='w', level=logging.INFO)
 server = Flask(__name__)
 
@@ -40,6 +44,14 @@ def renderPage():
     row = None 
     nrgkick = None 
     controls = None
+
+    if (int(AUTHENTICATION_ENABLED) == 1):
+        key = request.args.get(SECRET_PARAMETER)
+
+        if (key == None or key != SECRET_KEY):
+            # brute force protection
+            time.sleep(10)
+            return "FORBIDDEN"
     
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
@@ -97,6 +109,6 @@ if __name__ == "__main__":
     try:
         chargemanagercommon.init()
 
-        server.run(host='0.0.0.0', port=config.get('Webinterface', 'web.port'))
+        server.run(host='::', port=config.get('Webinterface', 'web.port'))
     except KeyboardInterrupt:
         pass

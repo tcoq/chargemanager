@@ -26,6 +26,7 @@ log = logging.getLogger()
 
 NRGKICK_MEASUREMENTS_URL = config.get('Nrgkick', 'measurements.url')
 NRGKICK_SETTINGS_URL = config.get('Nrgkick', 'settings.url')
+MAX_PHASES = config.get('Car', 'charging.phases')
 
 # IMPORTANT: please check the dependencies on this value if you change it 
 READ_WRITE_INTERVAL_SEC = 15
@@ -126,7 +127,7 @@ def readAndUpdate():
         totalVoltage = int(phase1) + int(phase2) + int(phase3)
         # read phases to avoid unnecessary writes
         phases = chargemanagercommon.getPhases()
-        if (totalVoltage > 600 and phases != 3):
+        if (totalVoltage > 600 and phases != 3 and MAX_PHASES == 3):
             chargemanagercommon.setPhases(3)
         elif (totalVoltage > 400 and phases != 2):
             chargemanagercommon.setPhases(2)
