@@ -14,11 +14,27 @@ config = configparser.RawConfigParser()
 config.read('chargemanager.properties')
 
 AUTHENTICATION_ENABLED = config.get('Webinterface', 'authentication.enabled')
-SECRET_PARAMETER = config.get('Webinterface', 'secret.parameter')
 SECRET_KEY = config.get('Webinterface', 'secret.key')
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename='/data/frontend.log', filemode='w', level=logging.INFO)
 server = Flask(__name__)
+
+#
+# Method checks correct auth
+# returns:
+# 0 = disabled authentication
+# -1 = forbidden because request-secret information are invailid
+#
+def checkAuth(request):
+    if (int(AUTHENTICATION_ENABLED) == 1):
+        key = request.args.get("secret")
+        if (key == None or key != SECRET_KEY):
+            # brute force protection
+            time.sleep(10)
+            return -1
+    else:
+       return 0
+
 
 #
 # JSON data for GoogleChart input
@@ -44,15 +60,14 @@ def renderPage():
     row = None 
     nrgkick = None 
     controls = None
+    secret = SECRET_KEY
 
-    if (int(AUTHENTICATION_ENABLED) == 1):
-        key = request.args.get(SECRET_PARAMETER)
+    status = checkAuth(request)
+    if (status == -1):
+        return "FORBIDDEN"
+    elif (status == 0):
+        secret = 0
 
-        if (key == None or key != SECRET_KEY):
-            # brute force protection
-            time.sleep(10)
-            return "FORBIDDEN"
-    
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
     try:
@@ -86,10 +101,15 @@ def renderPage():
     elif (chargemode == 3):
         trackedcharging = "checked"        
 
-    return render_template('index.html', row = row, trackedcharging = trackedcharging , fastcharging = fastcharging, slowcharging=slowcharging, controls=controls, nrgkick=nrgkick, disabledcharging=disabledcharging, tempdata=getJSONForSolaredgeData())
+    return render_template('index.html', row = row, trackedcharging = trackedcharging , fastcharging = fastcharging, slowcharging=slowcharging, controls=controls, nrgkick=nrgkick, disabledcharging=disabledcharging, secret=secret, tempdata=getJSONForSolaredgeData())
                
 @server.route("/chargemode", methods=['POST', 'GET'])
 def setChargemode():   
+
+    status = checkAuth(request)
+    if (status == -1):
+        return "FORBIDDEN"
+
     chargemode = request.form["chargemode"]
 
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -101,7 +121,11 @@ def setChargemode():
         logging.error(traceback.format_exc()) 
     cur.close()
     con.close()
-    return redirect(url_for('renderPage'))
+    
+    if (int(AUTHENTICATION_ENABLED) == 1):
+        return redirect(url_for('renderPage', secret = SECRET_KEY))
+    else:
+        return redirect(url_for('renderPage'))
 
 if __name__ == "__main__":
     os.environ['TZ'] = 'Europe/Berlin'

@@ -119,6 +119,10 @@
 			document.getElementById("fastcharging").style.display = "block";
 			/*document.getElementById("disabledcharginglabel").style.backgroundImage = 'linear-gradient(298deg, var(--dark-blue), var(--blue))';	*/
 			document.getElementById("disabledcharginglabel").innerHTML = "<i class='uil uil-moon'></i>Disabled";
+			var secret = "{{secret}}"
+			if (secret != 0) {
+				document.getElementById("chargemodeform").action = "/chargemode?secret=" + secret;
+			}
 		}
 		else {
 			document.getElementById("trackedcharginglabel").style.display = "none";
@@ -166,7 +170,7 @@
 	<h2 class="card" style="color:var(--grey)">CHARGEMANAGER</h2>
 	<div id="chart_div"></div>
 	<div style="padding:20px">CHARGING STRATEGY:</div>
-	<form action="/chargemode" method="POST" class="form-inline">
+	<form action="/chargemode" method="POST" class="form-inline" id="chargemodeform">
 	<input class="checkbox-tools" type="radio" id="disabledcharging" name="chargemode" value="0" onchange='this.form.submit();' {{disabledcharging}}>
 	<label class="for-checkbox-tools" for="disabledcharging" id="disabledcharginglabel"><i class="uil uil-moon"></i>Disabled</label>
 	<input class="checkbox-tools" type="radio" id="slowcharging" name="chargemode" value="2" onchange='this.form.submit();' {{slowcharging}}>

@@ -28,6 +28,10 @@ availablePowerRange = 0
 # init value with a high number to enable charging directly after software startup
 powerChangeCount = 10000
 house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
+# calculate threshold depending on peak performance of total solar-power, 
+# ... tested on 9400 watt system with std_dev_threshold of 585, which results in divisor of 16
+STD_DEV_THRESHOLD = int(config.get('Solaredge', 'modules.peak')) / 16
+CHARGEMODE_AUTO = int(config.get('Solaredge', 'modules.peak'))
 batteryProtectionCounter = 0
 batteryProtectionEnabled = False
 cloudyCounter = 0
@@ -74,7 +78,7 @@ def checkCloudyConditions():
     con.close() 
 
     # check if it is cloudy
-    if (stdDev > 585):
+    if (stdDev > STD_DEV_THRESHOLD):
         cloudyCounter += 2
         if (cloudyCounter >= 60):
             cloudyCounter = 60
@@ -183,6 +187,12 @@ def calcEfficientChargingStrategy():
     else:
         chargingPossible = 0
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
+
+    # automatically switch from SLOW to TRACKED charge mode it enabled
+    if (CHARGEMODE_AUTO == 1 and chargingPossible == 1 and cloudyConditions == 0):
+        if (chargemanagercommon.getChargemode() == 2):
+            # set to TRACKED mode
+            chargemanagercommon.getChargemode(3)
 
     # 5 minutes / 300 seconds
     changeTimeSec = 300
