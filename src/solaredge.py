@@ -98,12 +98,12 @@ def readModbus(client):
     soc = readData(client,62852,2,"float32")
     soh =  readData(client,62850,2,"float32")
     
-    # calculation of current pv production from solar panels
-    pv_prod = ac_power + ac_power_to_from_grid + battery_power
-    # calc available (free) power (overproduction)
-    available_power = ac_to_from_grid+battery_power
     # calc house consumption
     house_consumption = ac_power - ac_power_to_from_grid
+    # calculation of current pv production from solar panels
+    pv_prod = house_consumption + ac_power_to_from_grid + battery_power
+    # calc available (free) power (overproduction)
+    available_power = ac_to_from_grid+battery_power
 
     # if after the first calc pv_prod is very small we have to add negativ battery-power
     if (pv_prod < 50):

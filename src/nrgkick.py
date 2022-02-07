@@ -211,11 +211,12 @@ if __name__ == "__main__":
     os.environ['TZ'] = 'Europe/Berlin'
     tz = pytz.timezone('Europe/Berlin')
     time.tzset()
-    try:
-        chargemanagercommon.init()
-        kickWasStartedNow = False 
 
-        while True:
+    chargemanagercommon.init()
+    kickWasStartedNow = False 
+
+    while True:
+        try:
             chargemode = 0
             chargingPossible = 0
             availablePowerRange = 0
@@ -312,8 +313,10 @@ if __name__ == "__main__":
                         # avoid overloading counter
                         retryCountStartCharging = 4
             time.sleep(READ_WRITE_INTERVAL_SEC)
-    except KeyboardInterrupt:
-        pass
+        except KeyboardInterrupt:
+            break
+        except:
+            logging.error("Some error happens, try to repeat: " + traceback.format_exc())
     
 
 
