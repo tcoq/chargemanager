@@ -31,7 +31,7 @@ house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'ba
 # calculate threshold depending on peak performance of total solar-power, 
 # ... tested on 9400 watt system with std_dev_threshold of 585, which results in divisor of 16
 STD_DEV_THRESHOLD = int(config.get('Solaredge', 'modules.peak')) / 16
-CHARGEMODE_AUTO = int(config.get('Solaredge', 'modules.peak'))
+CHARGEMODE_AUTO = int(config.get('Chargemanager', 'chargemode.auto'))
 batteryProtectionCounter = 0
 batteryProtectionEnabled = False
 cloudyCounter = 0
@@ -93,7 +93,7 @@ def checkCloudyConditions():
             cloudyModeEnabled = True
             cloudyCounter = 60
         cloudy = 1
-        logging.info("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy) + ", trend: " + str(trend[0]) + ", cloudyCnt: " + str(cloudyCounter) + ", cloudymodeEnabled: " + str(cloudyModeEnabled))
+        logging.debug("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy) + ", trend: " + str(trend[0]) + ", cloudyCnt: " + str(cloudyCounter) + ", cloudymodeEnabled: " + str(cloudyModeEnabled))
     else:
         cloudyModeEnabled = False
 
@@ -188,11 +188,11 @@ def calcEfficientChargingStrategy():
         chargingPossible = 0
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
 
-    # automatically switch from SLOW to TRACKED charge mode it enabled
+    # automatically switch from SLOW to TRACKED charge mode if it is enabled
     if (CHARGEMODE_AUTO == 1 and chargingPossible == 1 and cloudyConditions == 0):
         if (chargemanagercommon.getChargemode() == 2):
             # set to TRACKED mode
-            chargemanagercommon.getChargemode(3)
+            chargemanagercommon.setChargemode(3)
 
     # 5 minutes / 300 seconds
     changeTimeSec = 300
