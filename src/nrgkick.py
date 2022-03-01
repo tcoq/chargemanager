@@ -127,13 +127,18 @@ def readAndUpdate():
         totalVoltage = int(phase1) + int(phase2) + int(phase3)
         # read phases to avoid unnecessary writes
         phases = chargemanagercommon.getPhases()
-        if (totalVoltage > 600 and phases != 3 and MAX_PHASES == 3):
-            chargemanagercommon.setPhases(3)
-        elif (totalVoltage > 400 and phases != 2):
-            chargemanagercommon.setPhases(2)
-        elif (totalVoltage > 200 and phases != 1):
-            chargemanagercommon.setPhases(1)
+        phasesNew = 0
+        
+        if (totalVoltage > 600 and MAX_PHASES == 3):
+            phasesNew = 3
+        elif (totalVoltage > 400):
+            phasesNew = 2
+        elif (totalVoltage > 200):
+            phasesNew = 1
 
+        if (phases != phasesNew):
+            chargemanagercommon.setPhases(phasesNew)
+            
         try:
             resp = requests.get(url=NRGKICK_SETTINGS_URL)
         except:

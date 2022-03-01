@@ -36,6 +36,8 @@ batteryProtectionCounter = 0
 batteryProtectionEnabled = False
 cloudyCounter = 0
 cloudyModeEnabled = False
+toggleToTrackedMode = True
+
 #
 # Method checks the standard derivation of the solar production of the last 15 minutes
 # returns :
@@ -102,7 +104,7 @@ def checkCloudyConditions():
 # Calculte the efficient charging strategy
 #
 def calcEfficientChargingStrategy():
-    global availablePowerRange,powerChangeCount, house_battery_soc_threshold_start_charging, batteryProtectionCounter, batteryProtectionEnabled
+    global availablePowerRange,powerChangeCount, house_battery_soc_threshold_start_charging, batteryProtectionCounter, batteryProtectionEnabled, toggleToTrackedMode
     currentAvailablePower = 0
     previousAvailablePowerRange = 0
     newAvailablePowerRange = 0
@@ -137,12 +139,12 @@ def calcEfficientChargingStrategy():
                 temprow3 = row[3]
 
             if (first):
-                # correct avg value from database
+                # correct avg value from database // temprow1 = avg(availablepowerrange) ??? should we use avg(availablepower_withoutcharging) instead???
                 previousAvailablePowerRange = chargemanagercommon.getPowerRange(temprow1)
             else:
                 # newer data
                 currentAvailablePower = temprow0
-                # correct avg value from database
+                # correct avg value from database // temprow1 = avg(availablepowerrange) ??? should we use avg(availablepower_withoutcharging) instead???
                 newAvailablePowerRange = chargemanagercommon.getPowerRange(temprow1)
                 currentBatteryPower = temprow3
                 soc = temprow2
@@ -188,11 +190,14 @@ def calcEfficientChargingStrategy():
         chargingPossible = 0
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
 
-    # automatically switch from SLOW to TRACKED charge mode if it is enabled
-    if (CHARGEMODE_AUTO == 1 and chargingPossible == 1 and cloudyConditions == 0):
+    # automatically switch from SLOW to TRACKED charge mode if CHARGEMODE_AUTO is enabled 
+    # and toggleToTrackedMode == True which is used to only change chargemode once in one charging-session
+    if (toggleToTrackedMode == True and CHARGEMODE_AUTO == 1 and chargingPossible == 1 and cloudyConditions == 0):
         if (chargemanagercommon.getChargemode() == 2):
             # set to TRACKED mode
             chargemanagercommon.setChargemode(3)
+            # toggle to avoid multi toggle in a charging-session / reset toggle is done below if charinging is stopped
+            toggleToTrackedMode = False
 
     # 5 minutes / 300 seconds
     changeTimeSec = 300
@@ -233,6 +238,9 @@ def calcEfficientChargingStrategy():
         con = sqlite3.connect('/data/chargemanager_db.sqlite3')
         cur = con.cursor()
         try:
+            # reset toggle
+            if (chargingPossible == 0):      
+                toggleToTrackedMode = True
             cur.execute("UPDATE controls set availablePowerRange = " + str(availablePowerRange) + ", chargingPossible=" + str(chargingPossible))
             con.commit()
         except:
@@ -240,7 +248,7 @@ def calcEfficientChargingStrategy():
         cur.close()
         con.close()
 
-        logging.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange))
+        logging.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible))
 
     # check if ranges changes
     if (availablePowerRange != newAvailablePowerRange):
