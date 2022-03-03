@@ -175,6 +175,12 @@ def calcEfficientChargingStrategy():
         minCharge = 4500
 
     if ((cloudyConditions == 1) and newAvailablePowerRange >= minCharge):
+        # reduce power in steps, if its cloudy to avoid to low charging values...
+        if (newAvailablePowerRange > (minCharge + 2500)):
+            newAvailablePowerRange = minCharge + 2000
+        elif (newAvailablePowerRange > (minCharge + 1500)):
+            newAvailablePowerRange = minCharge + 1000
+        else:
             newAvailablePowerRange = minCharge
 
     # enable charging when battery soc is high enougth and useful power is existing
@@ -183,9 +189,11 @@ def calcEfficientChargingStrategy():
         chargingPossible = 1
         # allow to get 5% out of house-battery for stabel charging conditions
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc')) - 5
-    elif (currentAvailablePower > int(config.get('Chargemanager', 'battery.max_input'))):
-        # in this case we have quite enought power and battery cannot get more because limit is at 5000
+    elif (currentBatteryPower > int(config.get('Chargemanager', 'battery.max_input'))):
+        # in this case we have quite enought power and battery cannot get more because limit is at 4900
         chargingPossible = 1
+        # we need to set threshold to a low value to avoid to stop after the next round
+        house_battery_soc_threshold_start_charging = int(soc) - 5
     else:
         chargingPossible = 0
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
@@ -193,6 +201,7 @@ def calcEfficientChargingStrategy():
     # automatically switch from SLOW to TRACKED charge mode if CHARGEMODE_AUTO is enabled 
     # and toggleToTrackedMode == True which is used to only change chargemode once in one charging-session
     if (toggleToTrackedMode == True and CHARGEMODE_AUTO == 1 and chargingPossible == 1 and cloudyConditions == 0):
+        logging.info("Auto switch to tracked mode! currentBatteryPower: " + str(currentBatteryPower) + " soc: " + str(soc) + " currentAvailablePower: " + str(currentAvailablePower))
         if (chargemanagercommon.getChargemode() == 2):
             # set to TRACKED mode
             chargemanagercommon.setChargemode(3)
@@ -206,7 +215,7 @@ def calcEfficientChargingStrategy():
     logging.debug("powerChangeCount: " + str(powerChangeCount) + " changeTimeSec:" + str(changeTimeSec) + " cloudy: " + str(cloudyConditions) + " currentBatteryPower: " + str(currentBatteryPower) + " chargingPossible: " + str(chargingPossible) + " soc: " + str(soc))
 
     # check if battery consumption is very high
-    if (currentBatteryPower < (int(config.get('Chargemanager', 'battery.max_consumption')) * -1)):
+    if (currentBatteryPower < (int(config.get('Chargemanager', 'battery.max_consumption')) * -1) and chargingPossible == 1):
         batteryProtectionCounter += 5
         if (batteryProtectionCounter >= 120):
             batteryProtectionCounter = 120
@@ -226,7 +235,7 @@ def calcEfficientChargingStrategy():
         powerChangeCount = 10000
         availablePowerRange = 0
         chargingPossible = 0
-        logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter))
+        logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter) + " currentBatteryPower: " + str(currentBatteryPower))
     else:
         batteryProtectionEnabled = False
 
