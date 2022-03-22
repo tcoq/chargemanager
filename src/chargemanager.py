@@ -139,12 +139,10 @@ def calcEfficientChargingStrategy():
                 temprow3 = row[3]
 
             if (first):
-                # correct avg value from database // temprow1 = avg(availablepowerrange) ??? should we use avg(availablepower_withoutcharging) instead???
                 previousAvailablePowerRange = chargemanagercommon.getPowerRange(temprow1)
             else:
                 # newer data
                 currentAvailablePower = temprow0
-                # correct avg value from database // temprow1 = avg(availablepowerrange) ??? should we use avg(availablepower_withoutcharging) instead???
                 newAvailablePowerRange = chargemanagercommon.getPowerRange(temprow1)
                 currentBatteryPower = temprow3
                 soc = temprow2
@@ -214,7 +212,7 @@ def calcEfficientChargingStrategy():
     logging.debug("Current (set) available power: " + str(currentAvailablePower) + " previous range:" + str(previousAvailablePowerRange) + " new range:" + str(newAvailablePowerRange) + " availablePowerRange:" + str(availablePowerRange) + " minCharge: " + str(minCharge) + " phase: " + str(chargemanagercommon.getPhases()))
     logging.debug("powerChangeCount: " + str(powerChangeCount) + " changeTimeSec:" + str(changeTimeSec) + " cloudy: " + str(cloudyConditions) + " currentBatteryPower: " + str(currentBatteryPower) + " chargingPossible: " + str(chargingPossible) + " soc: " + str(soc))
 
-    # check if battery consumption is very high
+    # check if battery consumption is very high (attention: currentBatteryPower has - sign during consumption and + sign during loading)
     if (currentBatteryPower < (int(config.get('Chargemanager', 'battery.max_consumption')) * -1) and chargingPossible == 1):
         batteryProtectionCounter += 5
         if (batteryProtectionCounter >= 120):
@@ -225,7 +223,7 @@ def calcEfficientChargingStrategy():
         if (batteryProtectionCounter <= 0):
             batteryProtectionCounter = 0
 
-    # if battery-consumption is very high, stop charging as soon as possible / 2 minutes 
+    # if battery-consumption is very high, stop charging as soon as possible / 2 minutes or break stable power gurantee to recalculate power values
     # activation after 60 = 2minutes (120sec/10sec_interval * 5 = 60),
     # deactvation after min. +10 minutes when upper battery consumption check is no longer true (60*10sec_interval * 1) = 600sec = 10min)
     if (batteryProtectionCounter > 60):
@@ -233,8 +231,10 @@ def calcEfficientChargingStrategy():
             batteryProtectionCounter = 120
             batteryProtectionEnabled = True
         powerChangeCount = 10000
-        availablePowerRange = 0
-        chargingPossible = 0
+        
+        # stop charging only if sun is really left (under min charge, otherwise powerChangeCount = 10000 breaks halt lower timer to allow a power recalculation)
+        if (currentAvailablePower < minCharge):
+            chargingPossible = 0
         logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter) + " currentBatteryPower: " + str(currentBatteryPower))
     else:
         batteryProtectionEnabled = False

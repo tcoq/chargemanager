@@ -55,6 +55,8 @@ def readData(client,address,size,typ):
         return decoder.decode_32bit_uint()
     if (typ == "float32"):
         return decoder.decode_32bit_float()
+    if (typ == "raw"):
+        return request
 #
 #	Delete data older 72 h
 #
@@ -85,9 +87,12 @@ def readModbus(client):
     ac = ctypes.c_int16(ac_one_operation & 0xffff).value
     ac_scale_factor = ctypes.c_int16((ac_one_operation >> 16) & 0xffff).value
     ac_power = ac * math.pow(10, ac_scale_factor)
-    ac_to_from_grid = readData(client,40206,1,"int16")
-    ac_grid_scale_factor = readData(client,40210,1,"int16")
+
+    ac_to_from_grid_one_operation = readData(client,40206,5,"raw")
+    ac_to_from_grid = ctypes.c_int16(ac_to_from_grid_one_operation.registers[0] & 0xffff).value
+    ac_grid_scale_factor = ctypes.c_int16(ac_to_from_grid_one_operation.registers[4] & 0xffff).value
     ac_power_to_from_grid  = ac_to_from_grid * math.pow(10, ac_grid_scale_factor)
+
     dc = readData(client,40100,1,"int16") 
     dc_scale_factor = readData(client,40101,1,"int16")
     dc_power = dc * math.pow(10, dc_scale_factor)

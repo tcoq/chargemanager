@@ -209,6 +209,7 @@ def setNrgkickDisconnected():
         logging.error(traceback.format_exc()) 
     cur.close()
     con.close()
+
 #
 #	Main, init and repeat reading
 #
