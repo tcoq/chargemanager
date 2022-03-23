@@ -230,12 +230,13 @@ def calcEfficientChargingStrategy():
         if (batteryProtectionEnabled == False):
             batteryProtectionCounter = 120
             batteryProtectionEnabled = True
+        # break waiting for recalculation
         powerChangeCount = 10000
         
         # stop charging only if sun is really left (under min charge, otherwise powerChangeCount = 10000 breaks halt lower timer to allow a power recalculation)
         if (currentAvailablePower < minCharge):
             chargingPossible = 0
-        logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter) + " currentBatteryPower: " + str(currentBatteryPower))
+            logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter) + " currentBatteryPower: " + str(currentBatteryPower))
     else:
         batteryProtectionEnabled = False
 
