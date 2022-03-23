@@ -198,7 +198,7 @@ def calcEfficientChargingStrategy():
 
     # automatically switch from SLOW to TRACKED charge mode if CHARGEMODE_AUTO is enabled 
     # and toggleToTrackedMode == True which is used to only change chargemode once in one charging-session
-    if (toggleToTrackedMode == True and CHARGEMODE_AUTO == 1 and chargingPossible == 1 and cloudyConditions == 0):
+    if (toggleToTrackedMode == True and CHARGEMODE_AUTO == 1 and chargingPossible == 1 and cloudyConditions == 0 and chargemanagercommon.getChargemode() != 0):
         logging.info("Auto switch to tracked mode! currentBatteryPower: " + str(currentBatteryPower) + " soc: " + str(soc) + " currentAvailablePower: " + str(currentAvailablePower))
         if (chargemanagercommon.getChargemode() == 2):
             # set to TRACKED mode
