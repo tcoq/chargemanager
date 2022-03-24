@@ -33,7 +33,7 @@ The project is packaged in a configured docker container. You only need to check
 5. Start the container 
   "docker run --network="host" --volume /your/path/to/chargemanager/data:/data chargemanagerimage" 
 (please notice that docker container need to have access to the network of the host to connect to Solaredge and NRGKICK)
-6. If everything is ok, you should see the webinterface when you type this into your browser: http://192.xxx.xxx.xxx:5000
+6. If everything is ok, you should see the webinterface when you type this into your browser: http://192.xxx.xxx.xxx:5000 (if authentification is activated the secret.key is necessary ...:5000?secret=YOURTOKEN)
 
 Important: "Watch out to mount data directory correctly to make database and logs available form host (outside docker client)
 
@@ -62,4 +62,4 @@ The charge manager is currently optimized for 2 phase (16A) charging on private 
 The use of this software is at your own risk. In my environment chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can occur, so please be careful and take a look into the logfiles in /data folder and webinterface.
 
 ## Security
-There is no authentification feature implemented. Please make sure that the docker container is startet in a non public environment (your own network) with active firewall.
+There is token authentification feature implemented. Please set authentication.enabled=1 in properties to enable it and edit set your individual token. (e.g. http://192.xxx.xxx.xxx:5000?secret=YOURTOKEN)
