@@ -33,7 +33,7 @@ The project is packaged in a configured docker container. You only need to check
 5. Start the container 
   "docker run --network="host" --volume /your/path/to/chargemanager/data:/data chargemanagerimage" 
 (please notice that docker container need to have access to the network of the host to connect to Solaredge and NRGKICK)
-6. If everything is ok, you should see the webinterface when you type this into your browser: http://192.xxx.xxx.xxx:5000 (if authentification is activated the secret.key is necessary ...:5000?secret=YOURTOKEN)
+6. If everything is ok, you should see the webinterface when you type this into your browser: http://192.xxx.xxx.xxx:5000 (if authentification is activated the secret.key is necessary like this http://192.xxx.xxx.xxx:5000?secret=YOURTOKEN)
 
 Important: "Watch out to mount data directory correctly to make database and logs available form host (outside docker client)
 
