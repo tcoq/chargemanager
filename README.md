@@ -12,6 +12,7 @@ The advantages of this charging manager are as follows:
 * Near realtime Solaredge inverter data
 * Possibility to choose between 1, 2 or 3 phase charging
 * Auto detection for disabling phases via fuses
+* Token authentification with brute force protection available
 * All values of the Solaredge inverter and the NRGKICK are stored in a SQLite database and are available for other evaluations
 
 ![picture alt](https://github.com/tcoq/chargemanager/blob/main/chargemanager.jpg?raw=true "Screenshot")
