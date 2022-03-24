@@ -7,7 +7,7 @@ The advantages of this charging manager are as follows:
 * Free photovoltaics-power tracked charging considering house consumption
 * Web interface with controls for 3 different charging strategies (slow, fast and tracked)
 * Automatic stop when the vehicle is fully charged
-* Cloud detection: If weather is cloudy chargmanager reduce power in tracked mode to avoid getting power from grid
+* Automatic cloud detection (if weather is cloudy, charge-power is reduced in tracked mode to avoid receiving power from grid)
 * Near realtime charging chart
 * Near realtime Solaredge inverter data
 * Possibility to choose between 1, 2 or 3 phase charging
