@@ -5,6 +5,7 @@ Welcome to the chargemanager project, which implements a electric car charging m
 The advantages of this charging manager are as follows:
 
 * Free photovoltaics-power tracked charging considering house consumption
+* No extra hardware necessary (only a small linux server in local network)
 * Web interface with controls for 3 different charging strategies (slow, fast and tracked)
 * Automatic stop when the vehicle is fully charged
 * Automatic cloud detection (if weather is cloudy, charge-power is reduced in tracked mode to avoid receiving power from grid)
