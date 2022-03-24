@@ -58,7 +58,7 @@ The green color of the button indicates charging is currently active:
 
 ![picture alt](https://github.com/tcoq/chargemanager/blob/main/green.jpg?raw=true "Screenshot")
 
-The charge manager is currently optimized for 2 phase (16A) charging on private PV installation with 8,5-10 KW peak. 3 phase charging (16A) is also possible but your PV should have minimum 12KW peak, otherwise minimum charging is to high to get most out of your PV. 
+The charge manager is currently optimized for 2 phase (16A) charging on private PV installation with 8,5-10 KW peak. 3 phase charging (16A) is also possible but your PV should have minimum 12KW peak, otherwise minimum charging is to high to get most out of your PV. Please note that chargemanger always charges a little bit lower than maximum per phase in TRACKED and FAST mode to have more safety for your electric home-infrastructure. (overload, heat, etc.)
 
 ## Caution 
 The use of this software is at your own risk. In my environment chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can occur, so please be careful and take a look into the logfiles in /data folder and webinterface.
