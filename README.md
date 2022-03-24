@@ -7,6 +7,7 @@ The advantages of this charging manager are as follows:
 * Free photovoltaics-power tracked charging considering house consumption
 * Web interface with controls for 3 different charging strategies (slow, fast and tracked)
 * Automatic stop when the vehicle is fully charged
+* Cloud detection: If weather is cloudy chargmanager reduce power in tracked mode to avoid getting power from grid
 * Near realtime charging chart
 * Near realtime Solaredge inverter data
 * Possibility to choose between 1, 2 or 3 phase charging
@@ -45,7 +46,7 @@ There are three different charge strategies:
 1. **Disabled / Offline**<br/>
   Charging is disabled if button is blue. If button is red and text is "Offline" NRGKICK is not available by the network.
 3. **Slow**<br/>
-  The car is charged immediately with low charge power (1380 watt 1 phase, 2760 watt 2 phases or 4140 watt 3 phases) until car is full. (this strategy ignores Solar production) 
+  The car is charged immediately with low charge power, if chargemode.auto set to 1 (see properties) mode is switched automatically to tracked if pv production is high and battery is charged enought  (1380 watt 1 phase, 2760 watt 2 phases or 4140 watt 3 phases) until car is full. (this strategy ignores Solar production) 
 5. **Fast**<br/>
   The car is charged immediately with high charge power (3450 watt 1 phase, 6900 watt, 2 phases or 10350 watt 3 phases) until car is full. (this strategy ignores also Solar production) 
 7. **Tracked**<br/>
