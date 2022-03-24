@@ -63,4 +63,4 @@ The charge manager is currently optimized for 2 phase (16A) charging on private 
 The use of this software is at your own risk. In my environment chargemanger charges my VW ID.4 many times without any problems, but in worst cases (like other combinations of e.g. cars) bugs can occur, so please be careful and take a look into the logfiles in /data folder and webinterface.
 
 ## Security
-There is token authentification feature implemented. Please set authentication.enabled=1 in properties to enable it and edit set your individual token. (e.g. http://192.xxx.xxx.xxx:5000?secret=YOURTOKEN)
+There is token authentification feature implemented. Please set authentication.enabled=1 in properties to enable it and set your individual token in properties. (e.g. http://192.xxx.xxx.xxx:5000?secret=YOURTOKEN)
