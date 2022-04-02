@@ -29,7 +29,6 @@ log = logging.getLogger()
 
 SOLAREDGE_INVERTER_IP = config.get('Solaredge', 'inverter.ip')
 READ_INTERVAL_SEC = 15
-logCount = 1
 
 # Reading & decoding data from modbus
 
@@ -78,7 +77,6 @@ def cleanupData():
 #	Read data from modbus and store them in SQLLite
 #
 def readModbus(client):
-    global logCount
 
     tz = pytz.timezone('Europe/Berlin')
     timestamp = datetime.now(tz)
@@ -93,8 +91,9 @@ def readModbus(client):
     ac_grid_scale_factor = ctypes.c_int16(ac_to_from_grid_one_operation.registers[4] & 0xffff).value
     ac_power_to_from_grid  = ac_to_from_grid * math.pow(10, ac_grid_scale_factor)
 
-    dc = readData(client,40100,1,"int16") 
-    dc_scale_factor = readData(client,40101,1,"int16")
+    dc_one_operation = readData(client,40100,2,"int32")
+    dc = ctypes.c_int16(dc_one_operation & 0xffff).value 
+    dc_scale_factor = ctypes.c_int16((dc_one_operation >> 16) & 0xffff).value
     dc_power = dc * math.pow(10, dc_scale_factor)
     temp = readData(client,40103,1,"int16")
     status = readData(client,40107,1,"uint16")
@@ -143,15 +142,14 @@ def readModbus(client):
     cur.close()
     con.close() 
 
-    # avoid to heavy logging
-    if (logCount % 3 == 0):
-        logging.debug("AC: " + str(ac) + " AC sf: " + str(ac_scale_factor) + " AC power: " + str(ac_power) + " AC to/from grid: " + str(ac_to_from_grid) + " AC grid scale factor: " + str(ac_grid_scale_factor) + " AC power to/from grid: " + str(ac_power_to_from_grid))
-        logging.debug("House: " + str(house_consumption) + " DC: " + str(dc) + " DC scale factor: " + str(dc_scale_factor) + " DC power: " + str(dc_power) + " Temp: " + str(temp/100))
-        logging.debug("Battery status: " + str(battery_status) + " Battery power: " + str(battery_power) + " SOC: " + str(soc) + " SOH:" + str(soh))
-        logging.debug("PV production: " + str(pv_prod) + " available power: " + str(available_power) + " available power without battery / range: " + str(availablepower_withoutcharging) + "/" +  str(availablepowerrange) + " nrgkick power: " + str(nrgkick_power) + " inverterstatus:" + str(status))
-        logCount = 1
-    else:
-        logCount += 1
+    # logging where mybe a bug occured dureing reading modbus
+    if (availablepower_withoutcharging <= 0 and pv_prod >= 2500):
+        logging.info("ATTENTION: MAYBE WE READ WRONG VALUES FROM MODBUS, CHECK IF POWER VALUES ARE PLAUSIBLE:")
+        logging.info("AC: " + str(ac) + " AC sf: " + str(ac_scale_factor) + " AC power: " + str(ac_power) + " AC to/from grid: " + str(ac_to_from_grid) + " AC grid scale factor: " + str(ac_grid_scale_factor) + " AC power to/from grid: " + str(ac_power_to_from_grid))
+        logging.info("House: " + str(house_consumption) + " DC: " + str(dc) + " DC scale factor: " + str(dc_scale_factor) + " DC power: " + str(dc_power) + " Temp: " + str(temp/100))
+        logging.info("Battery status: " + str(battery_status) + " Battery power: " + str(battery_power) + " SOC: " + str(soc) + " SOH:" + str(soh))
+        logging.info("PV production: " + str(pv_prod) + " available power: " + str(available_power) + " available power without battery / range: " + str(availablepower_withoutcharging) + "/" +  str(availablepowerrange) + " nrgkick power: " + str(nrgkick_power) + " inverterstatus:" + str(status))
+
 
 #
 #	Main, init and repeat reading
