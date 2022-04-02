@@ -197,14 +197,15 @@ def calcEfficientChargingStrategy():
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
 
     # automatically switch from SLOW to TRACKED charge mode if CHARGEMODE_AUTO is enabled 
-    # and toggleToTrackedMode == True which is used to only change chargemode once in one charging-session
-    if (toggleToTrackedMode == True and CHARGEMODE_AUTO == 1 and chargingPossible == 1 and cloudyConditions == 0 and chargemanagercommon.getChargemode() != 0):
-        logging.info("Auto switch to tracked mode! currentBatteryPower: " + str(currentBatteryPower) + " soc: " + str(soc) + " currentAvailablePower: " + str(currentAvailablePower))
+    # and toggleToTrackedMode == True which is used to only change chargemode once in one charging-session 
+    # (currentAvailablePower + 250) >= minCharge = use a little bit more min power to avoid falling back and stopp charing 
+    if (toggleToTrackedMode == True and CHARGEMODE_AUTO == 1 and chargingPossible == 1 and cloudyConditions == 0 and (currentAvailablePower + 250) >= minCharge and chargemanagercommon.getChargemode() != 0):
         if (chargemanagercommon.getChargemode() == 2):
             # set to TRACKED mode
             chargemanagercommon.setChargemode(3)
             # toggle to avoid multi toggle in a charging-session / reset toggle is done below if charinging is stopped
             toggleToTrackedMode = False
+            logging.info("Auto switch to tracked mode! currentBatteryPower: " + str(currentBatteryPower) + " soc: " + str(soc) + " currentAvailablePower: " + str(currentAvailablePower))
 
     # 5 minutes / 300 seconds
     changeTimeSec = 300
@@ -248,8 +249,9 @@ def calcEfficientChargingStrategy():
         con = sqlite3.connect('/data/chargemanager_db.sqlite3')
         cur = con.cursor()
         try:
-            # reset toggle
-            if (chargingPossible == 0):      
+            # reset toggle if there is no free power anymore and charging is not in SLOW/FAST mode to avoid jumping back from manual mode to tracked
+            cm = chargemanagercommon.getChargemode()
+            if (chargingPossible == 0 and (cm == 3 or cm == 0)): # 3 TRACKED / 0 DISABLED     
                 toggleToTrackedMode = True
             cur.execute("UPDATE controls set availablePowerRange = " + str(availablePowerRange) + ", chargingPossible=" + str(chargingPossible))
             con.commit()
@@ -258,7 +260,7 @@ def calcEfficientChargingStrategy():
         cur.close()
         con.close()
 
-        logging.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible))
+        logging.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible) + " phases: " + str(phases) + " cloudy: " + str(cloudyConditions) + " minCharge: " + str(minCharge))
 
     # check if ranges changes
     if (availablePowerRange != newAvailablePowerRange):
