@@ -137,7 +137,10 @@ def readAndUpdate():
             phasesNew = 1
 
         if (phases != phasesNew):
-            chargemanagercommon.setPhases(phasesNew)
+            try:
+                chargemanagercommon.setPhases(phasesNew)
+            except:
+                 pass   
             
         try:
             resp = requests.get(url=NRGKICK_SETTINGS_URL)
@@ -264,7 +267,7 @@ if __name__ == "__main__":
                     chargePowerValue = 6
                     chargingPossible = 1
                 else:
-                    # efficient mode
+                    # tracked mode
                     chargePowerValue = chargemanagercommon.getCurrent(availablePowerRange)
                 
                 succesful = False

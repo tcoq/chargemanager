@@ -137,7 +137,7 @@ def getCurrent(availablePowerRange):
             chargePowerValue = 13 # 2990 watt
         elif (availablePowerRange == 3300): 
             chargePowerValue = 14 # 3220 watt
-        elif (availablePowerRange == 3500): 
+        elif (availablePowerRange >= 3500): 
             chargePowerValue = 15 # 3450 watt
     if (getPhases() == 2):
         if (availablePowerRange == 2800):
@@ -158,7 +158,7 @@ def getCurrent(availablePowerRange):
             chargePowerValue = 13 # 5980 watt
         elif (availablePowerRange == 6500): 
             chargePowerValue = 14 # 6440 watt
-        elif (availablePowerRange == 6950): 
+        elif (availablePowerRange >= 6950): 
             chargePowerValue = 15 # 6900 watt
     elif (getPhases() == 3):
         if (availablePowerRange == 4500):

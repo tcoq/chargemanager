@@ -175,9 +175,9 @@ def calcEfficientChargingStrategy():
     if ((cloudyConditions == 1) and newAvailablePowerRange >= minCharge):
         # reduce power in steps, if its cloudy to avoid to low charging values...
         if (newAvailablePowerRange > (minCharge + 2500)):
-            newAvailablePowerRange = minCharge + 2000
+            newAvailablePowerRange = chargemanagercommon.getPowerRange(minCharge + 2000)
         elif (newAvailablePowerRange > (minCharge + 1500)):
-            newAvailablePowerRange = minCharge + 1000
+            newAvailablePowerRange = chargemanagercommon.getPowerRange(minCharge + 1000)
         else:
             newAvailablePowerRange = minCharge
 
