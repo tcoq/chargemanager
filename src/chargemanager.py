@@ -196,10 +196,20 @@ def calcEfficientChargingStrategy():
         chargingPossible = 0
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
 
+    # tracked mode is already active, if it changed now it is a manuel overruling, avoid to switch back
+    if (chargemanagercommon.getChargemode() == 3):
+        toggleToTrackedMode = False
     # automatically switch from SLOW to TRACKED charge mode if CHARGEMODE_AUTO is enabled 
     # and toggleToTrackedMode == True which is used to only change chargemode once in one charging-session 
-    # (currentAvailablePower + 250) >= minCharge = use a little bit more min power to avoid falling back and stopp charing 
-    if (toggleToTrackedMode == True and CHARGEMODE_AUTO == 1 and chargingPossible == 1 and cloudyConditions == 0 and (currentAvailablePower + 250) >= minCharge and chargemanagercommon.getChargemode() != 0):
+    # (currentAvailablePower) >= minCharge + 250 = use a little bit more min power to avoid falling back and stopp charing 
+    # and battery soc < 89%
+    if (toggleToTrackedMode == True and 
+        CHARGEMODE_AUTO == 1 and
+        chargingPossible == 1 and 
+        cloudyConditions == 0 and 
+        currentAvailablePower >= (minCharge + 250) and 
+        chargemanagercommon.getChargemode() != 0 and # disabled
+        chargemanagercommon.getChargemode() != 1): # fast
         if (chargemanagercommon.getChargemode() == 2):
             # set to TRACKED mode
             chargemanagercommon.setChargemode(3)
@@ -249,9 +259,9 @@ def calcEfficientChargingStrategy():
         con = sqlite3.connect('/data/chargemanager_db.sqlite3')
         cur = con.cursor()
         try:
-            # reset toggle if there is no free power anymore and charging is not in SLOW/FAST mode to avoid jumping back from manual mode to tracked
+            # reset toggle if there is no free power anymore and charging was disabled to avoid jumping back from manual mode to tracked
             cm = chargemanagercommon.getChargemode()
-            if (chargingPossible == 0 and (cm == 3 or cm == 0)): # 3 TRACKED / 0 DISABLED     
+            if (chargingPossible == 0 and cm == 0): # 0 DISABLED     
                 toggleToTrackedMode = True
             cur.execute("UPDATE controls set availablePowerRange = " + str(availablePowerRange) + ", chargingPossible=" + str(chargingPossible))
             con.commit()
