@@ -105,7 +105,6 @@ def checkCloudyConditions():
 #
 def calcEfficientChargingStrategy():
     global availablePowerRange,powerChangeCount, house_battery_soc_threshold_start_charging, batteryProtectionCounter, batteryProtectionEnabled, toggleToTrackedMode
-    currentAvailablePower = 0
     previousAvailablePowerRange = 0
     newAvailablePowerRange = 0
     chargingPossible = 0
@@ -115,7 +114,7 @@ def calcEfficientChargingStrategy():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
     try:
-        cur.execute("select avg(availablepower_withoutcharging),avg(availablepowerrange),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-4 minute','localtime') AND datetime('now','localtime') UNION select avg(availablepower_withoutcharging),avg(availablepowerrange),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-8 minute','localtime') AND datetime('now','-4 minute','localtime')")
+        cur.execute("select avg(availablepower_withoutcharging),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-4 minute','localtime') AND datetime('now','localtime') UNION select avg(availablepower_withoutcharging),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-8 minute','localtime') AND datetime('now','-4 minute','localtime')")
         rows = cur.fetchall()
         cur.close()
         con.close()
@@ -127,7 +126,6 @@ def calcEfficientChargingStrategy():
             temprow0 = 0
             temprow1 = 0
             temprow2 = 0
-            temprow3 = 0
 
             if (row[0] != None):
                 temprow0 = row[0]
@@ -135,21 +133,18 @@ def calcEfficientChargingStrategy():
                 temprow1 = row[1]
             if (row[2] != None):
                 temprow2 = row[2]
-            if (row[3] != None):
-                temprow3 = row[3]
 
             if (first):
-                previousAvailablePowerRange = chargemanagercommon.getPowerRange(temprow1)
+                previousAvailablePowerRange = chargemanagercommon.getPowerRange(temprow0)
             else:
                 # newer data
-                currentAvailablePower = temprow0
-                newAvailablePowerRange = chargemanagercommon.getPowerRange(temprow1)
-                currentBatteryPower = temprow3
-                soc = temprow2
+                newAvailablePowerRange = chargemanagercommon.getPowerRange(temprow0)
+                currentBatteryPower = temprow2
+                soc = temprow1
             if (index >= 2):
                 logging.error("SQL returns more than 2 rows! ") 
                 break
-            logging.debug(str(first) + " previousAvailablePowerRange: " + str(previousAvailablePowerRange) + " currentAvailablePower:" + str(currentAvailablePower) + " newAvailablePowerRange:" + str(newAvailablePowerRange) + " soc:" + str(soc) + " currentBatteryPower:" + str(currentBatteryPower))
+            logging.debug(str(first) + " previousAvailablePowerRange: " + str(previousAvailablePowerRange) + " newAvailablePowerRange:" + str(newAvailablePowerRange) + " soc:" + str(soc) + " currentBatteryPower:" + str(currentBatteryPower))
             index += 1
             first = False
     except:
@@ -178,12 +173,14 @@ def calcEfficientChargingStrategy():
             newAvailablePowerRange = chargemanagercommon.getPowerRange(minCharge + 2000)
         elif (newAvailablePowerRange > (minCharge + 1500)):
             newAvailablePowerRange = chargemanagercommon.getPowerRange(minCharge + 1000)
+        elif (newAvailablePowerRange > (minCharge + 1000)):
+            newAvailablePowerRange = chargemanagercommon.getPowerRange(minCharge + 700)
         else:
             newAvailablePowerRange = minCharge
 
     # enable charging when battery soc is high enougth and useful power is existing
     # soc == 0 means house-battery is disabled / not available
-    if ((int(soc) >= house_battery_soc_threshold_start_charging or int(soc) == 0) and currentAvailablePower >= minCharge):
+    if ((int(soc) >= house_battery_soc_threshold_start_charging or int(soc) == 0) and newAvailablePowerRange >= minCharge):
         chargingPossible = 1
         # allow to get 5% out of house-battery for stabel charging conditions
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc')) - 5
@@ -207,7 +204,7 @@ def calcEfficientChargingStrategy():
         CHARGEMODE_AUTO == 1 and
         chargingPossible == 1 and 
         cloudyConditions == 0 and 
-        currentAvailablePower >= (minCharge + 250) and 
+        newAvailablePowerRange >= (minCharge + 250) and 
         chargemanagercommon.getChargemode() != 0 and # disabled
         chargemanagercommon.getChargemode() != 1): # fast
         if (chargemanagercommon.getChargemode() == 2):
@@ -215,12 +212,12 @@ def calcEfficientChargingStrategy():
             chargemanagercommon.setChargemode(3)
             # toggle to avoid multi toggle in a charging-session / reset toggle is done below if charinging is stopped
             toggleToTrackedMode = False
-            logging.info("Auto switch to tracked mode! currentBatteryPower: " + str(currentBatteryPower) + " soc: " + str(soc) + " currentAvailablePower: " + str(currentAvailablePower))
+            logging.info("Auto switch to tracked mode! currentBatteryPower: " + str(currentBatteryPower) + " soc: " + str(soc) + " newAvailablePowerRange: " + str(newAvailablePowerRange))
 
     # 5 minutes / 300 seconds
     changeTimeSec = 300
 
-    logging.debug("Current (set) available power: " + str(currentAvailablePower) + " previous range:" + str(previousAvailablePowerRange) + " new range:" + str(newAvailablePowerRange) + " availablePowerRange:" + str(availablePowerRange) + " minCharge: " + str(minCharge) + " phase: " + str(chargemanagercommon.getPhases()))
+    logging.debug("Current (set) available power range: " + str(newAvailablePowerRange) + " previous range:" + str(previousAvailablePowerRange) + " new range:" + str(newAvailablePowerRange) + " availablePowerRange:" + str(availablePowerRange) + " minCharge: " + str(minCharge) + " phase: " + str(chargemanagercommon.getPhases()))
     logging.debug("powerChangeCount: " + str(powerChangeCount) + " changeTimeSec:" + str(changeTimeSec) + " cloudy: " + str(cloudyConditions) + " currentBatteryPower: " + str(currentBatteryPower) + " chargingPossible: " + str(chargingPossible) + " soc: " + str(soc))
 
     # check if battery consumption is very high (attention: currentBatteryPower has - sign during consumption and + sign during loading)
@@ -245,7 +242,7 @@ def calcEfficientChargingStrategy():
         powerChangeCount = 10000
         
         # stop charging only if sun is really left (under min charge, otherwise powerChangeCount = 10000 breaks halt lower timer to allow a power recalculation)
-        if (currentAvailablePower < minCharge):
+        if (newAvailablePowerRange < minCharge):
             chargingPossible = 0
             logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter) + " currentBatteryPower: " + str(currentBatteryPower))
     else:

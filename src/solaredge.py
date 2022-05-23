@@ -108,6 +108,8 @@ def readModbus(client):
     pv_prod = house_consumption + ac_power_to_from_grid + battery_power
     # calc available (free) power (overproduction)
     available_power = ac_to_from_grid+battery_power
+    availablepowerrange = 0
+    availablepowerrange = chargemanagercommon.getPowerRange(available_power)
 
     # if after the first calc pv_prod is very small we have to add negativ battery-power
     if (pv_prod < 50):
@@ -117,8 +119,6 @@ def readModbus(client):
 
     nrgkick = None
     nrgkick_power = 0
-    availablepowerrange = 0
-    availablepower_withoutcharging = 0
 
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
@@ -129,10 +129,13 @@ def readModbus(client):
             logging.error("NRGKick table is empty!")
         else:
             nrgkick_power = int(nrgkick[0])
+
             # plausibility check: due to async read data nrg-kick can be read before house
             if (house_consumption >= nrgkick_power):
-                availablepower_withoutcharging = available_power + nrgkick_power
-            availablepowerrange = chargemanagercommon.getPowerRange(availablepower_withoutcharging)
+                availablepower_withoutcharging = available_power + nrgkick_power    
+            else:             
+                availablepower_withoutcharging = available_power           
+            
             data_sql = "INSERT INTO 'modbus' (timestamp,pvprod,houseconsumption,acpower,acpowertofromgrid,dcpower,availablepower_withoutcharging,availablepowerrange,temperature,status,batterypower,batterystatus,soc,soh) VALUES ('"+ str(timestamp) + "',"  + str(pv_prod) + "," + str(house_consumption) + "," + str(ac_power) + "," + str(ac_to_from_grid) + "," + str(dc_power) + "," + str(availablepower_withoutcharging) + "," + str(availablepowerrange) + "," + str(temp/100) + "," + str(status) + "," + str(battery_power) + "," + str(battery_status) + "," + str(soc) + "," + str(soh) + ")"
             logging.debug(data_sql)
             cur.execute(data_sql)

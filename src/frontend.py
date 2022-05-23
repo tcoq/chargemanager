@@ -40,7 +40,7 @@ def checkAuth(request):
 # JSON data for GoogleChart input
 #
 def getJSONForSolaredgeData():
-    with sqlite3.connect('/data/chargemanager_db.sqlite3') as con:
+        con = sqlite3.connect('/data/chargemanager_db.sqlite3')
         cur = con.cursor()
         title = "Solaredge"
         # build 5 minute intervals of data
@@ -51,6 +51,8 @@ def getJSONForSolaredgeData():
         select datetime((strftime('%s', timestamp) / 300) * 300, 'unixepoch','localtime') interval, avg(currentChargingPower) as chargerange, max(chargingPossible) as chargingpossible from chargelog WHERE timestamp > datetime('now','-12 hour','localtime') group by interval) USING (interval)"""
         cur.execute(sql)
         data = cur.fetchall()
+        cur.close()
+        con.close()
         return json.dumps(data)
 #
 # Render index html
