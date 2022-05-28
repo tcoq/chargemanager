@@ -193,8 +193,9 @@ def calcEfficientChargingStrategy():
         chargingPossible = 0
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
 
-    # tracked mode is already active, if it changed now it is a manuel overruling, avoid to switch back
-    if (chargemanagercommon.getChargemode() == 3):
+    # if tracked mode is already toggle to avoid to reactive if a manual mode switch by user
+    # avoid switching to tracked morde if it is cloudy
+    if (chargemanagercommon.getChargemode() == 3 or cloudyConditions == 1):
         toggleToTrackedMode = False
     # automatically switch from SLOW to TRACKED charge mode if CHARGEMODE_AUTO is enabled 
     # and toggleToTrackedMode == True which is used to only change chargemode once in one charging-session 
@@ -203,7 +204,6 @@ def calcEfficientChargingStrategy():
     if (toggleToTrackedMode == True and 
         CHARGEMODE_AUTO == 1 and
         chargingPossible == 1 and 
-        cloudyConditions == 0 and 
         newAvailablePowerRange >= (minCharge + 250) and 
         chargemanagercommon.getChargemode() != 0 and # disabled
         chargemanagercommon.getChargemode() != 1): # fast
@@ -269,7 +269,7 @@ def calcEfficientChargingStrategy():
 
         logging.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible) + " phases: " + str(phases) + " cloudy: " + str(cloudyConditions) + " minCharge: " + str(minCharge))
 
-    # check if ranges changes
+    # check if power ranges changes
     if (availablePowerRange != newAvailablePowerRange):
         powerChangeCount += 1
     else:
