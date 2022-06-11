@@ -48,6 +48,8 @@ def getPhases():
         cur.execute("SELECT phases FROM nrgkick")
         chargemode = cur.fetchone()
     except:
+        cur.close()
+        con.close()
         return -1
     cur.close()
     con.close()
@@ -197,6 +199,8 @@ def getChargemode():
         cur.execute("SELECT chargemode FROM controls")
         chargemode = cur.fetchone()
     except:
+        cur.close()
+        con.close()
         return -1
     cur.close()
     con.close()
@@ -237,6 +241,8 @@ def getCloudy():
         cur.execute("SELECT cloudy FROM controls")
         cloudy = cur.fetchone()
     except:
+        cur.close()
+        con.close()
         return -1
     cur.close()
     con.close()

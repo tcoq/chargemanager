@@ -248,6 +248,9 @@ if __name__ == "__main__":
                     chargemode = data[2]
                 except:
                     logging.error(traceback.format_exc()) 
+                    cur.close()
+                    con.close()
+                    continue # ignore the rest of code an retry until we get database back because we do not have plausible values
                 cur.close()
                 con.close()
 

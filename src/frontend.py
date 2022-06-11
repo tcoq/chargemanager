@@ -42,15 +42,18 @@ def checkAuth(request):
 def getJSONForSolaredgeData():
         con = sqlite3.connect('/data/chargemanager_db.sqlite3')
         cur = con.cursor()
-        title = "Solaredge"
-        # build 5 minute intervals of data
-        sql = """
-        select interval,pvprod,availablepowerrange,chargerange,chargingpossible from ( 
-        select datetime((strftime('%s', timestamp) / 300) * 300, 'unixepoch','localtime') interval, CAST(avg(pvprod) as INTEGER) as pvprod, avg(availablepowerrange) as availablepowerrange from modbus WHERE timestamp > datetime('now','-12 hour','localtime') group by interval)
-        LEFT JOIN (
-        select datetime((strftime('%s', timestamp) / 300) * 300, 'unixepoch','localtime') interval, avg(currentChargingPower) as chargerange, max(chargingPossible) as chargingpossible from chargelog WHERE timestamp > datetime('now','-12 hour','localtime') group by interval) USING (interval)"""
-        cur.execute(sql)
-        data = cur.fetchall()
+        try:
+            title = "Solaredge"
+            # build 5 minute intervals of data
+            sql = """
+            select interval,pvprod,availablepowerrange,chargerange,chargingpossible from ( 
+            select datetime((strftime('%s', timestamp) / 300) * 300, 'unixepoch','localtime') interval, CAST(avg(pvprod) as INTEGER) as pvprod, avg(availablepowerrange) as availablepowerrange from modbus WHERE timestamp > datetime('now','-12 hour','localtime') group by interval)
+            LEFT JOIN (
+            select datetime((strftime('%s', timestamp) / 300) * 300, 'unixepoch','localtime') interval, avg(currentChargingPower) as chargerange, max(chargingPossible) as chargingpossible from chargelog WHERE timestamp > datetime('now','-12 hour','localtime') group by interval) USING (interval)"""
+            cur.execute(sql)
+            data = cur.fetchall()
+        except:
+            logging.error(traceback.format_exc())
         cur.close()
         con.close()
         return json.dumps(data)

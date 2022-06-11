@@ -116,8 +116,6 @@ def calcEfficientChargingStrategy():
     try:
         cur.execute("select avg(availablepower_withoutcharging),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-4 minute','localtime') AND datetime('now','localtime') UNION select avg(availablepower_withoutcharging),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-8 minute','localtime') AND datetime('now','-4 minute','localtime')")
         rows = cur.fetchall()
-        cur.close()
-        con.close()
 
         first = True
         index = 0
@@ -149,7 +147,10 @@ def calcEfficientChargingStrategy():
             first = False
     except:
         logging.error(traceback.format_exc())  
-
+    
+    cur.close()
+    con.close()
+     
     # check if weather is cloudy
     cloudyConditions = checkCloudyConditions()
     # avoid unnecessary writes
@@ -267,7 +268,7 @@ def calcEfficientChargingStrategy():
         cur.close()
         con.close()
 
-        logging.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible) + " phases: " + str(phases) + " cloudy: " + str(cloudyConditions) + " minCharge: " + str(minCharge))
+        logging.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible) + " phases: " + str(phases) + " cloudy: " + str(cloudyConditions) + " minCharge: " + str(minCharge) + " soc:" + str(soc))
 
     # check if power ranges changes
     if (availablePowerRange != newAvailablePowerRange):
