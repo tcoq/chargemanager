@@ -52,9 +52,9 @@ def getJSONForSolaredgeData():
             select datetime((strftime('%s', timestamp) / 300) * 300, 'unixepoch','localtime') interval, avg(currentChargingPower) as chargerange, max(chargingPossible) as chargingpossible from chargelog WHERE timestamp > datetime('now','-12 hour','localtime') group by interval) USING (interval)"""
             cur.execute(sql)
             data = cur.fetchall()
+            cur.close()
         except:
             logging.error(traceback.format_exc())
-        cur.close()
         con.close()
         return json.dumps(data)
 #
@@ -84,10 +84,11 @@ def renderPage():
 
         cur.execute("SELECT chargemode,availablePowerRange,chargingPossible,cloudy FROM controls")
         controls = cur.fetchone()
+        cur.close()
     except:
         logging.error(traceback.format_exc())  
-    cur.close()
     con.close()
+
     if row == None or nrgkick == None or controls == None:
         return "No data" 
 
@@ -122,9 +123,9 @@ def setChargemode():
     try:
         cur.execute("UPDATE controls set chargemode = " + chargemode)
         con.commit()
+        cur.close()
     except:
         logging.error(traceback.format_exc()) 
-    cur.close()
     con.close()
     
     if (int(AUTHENTICATION_ENABLED) == 1):

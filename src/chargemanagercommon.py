@@ -31,9 +31,9 @@ def setPhases(value):
     try:
         cur.execute("UPDATE nrgkick SET phases = " + str(value))
         con.commit()
+        cur.close()
     except:
         logging.error(traceback.format_exc()) 
-    cur.close()
     con.close()
 
 #
@@ -47,12 +47,14 @@ def getPhases():
     try:
         cur.execute("SELECT phases FROM nrgkick")
         chargemode = cur.fetchone()
-    except:
         cur.close()
+    except:
         con.close()
         return -1
-    cur.close()
     con.close()
+
+    if (int(chargemode[0]) == None):
+        return -1
     return int(chargemode[0])
 #
 # Calculating the right power range for a given power-value
@@ -198,11 +200,10 @@ def getChargemode():
     try:
         cur.execute("SELECT chargemode FROM controls")
         chargemode = cur.fetchone()
-    except:
         cur.close()
+    except:
         con.close()
         return -1
-    cur.close()
     con.close()
     return int(chargemode[0])
 
@@ -224,9 +225,9 @@ def setChargemode(chargemode):
     try:
         cur.execute("UPDATE controls SET chargemode = " + str(chargemode))
         con.commit()
+        cur.close()
     except:
         logging.error(traceback.format_exc()) 
-    cur.close()
     con.close()
 
 #
@@ -240,11 +241,10 @@ def getCloudy():
     try:
         cur.execute("SELECT cloudy FROM controls")
         cloudy = cur.fetchone()
-    except:
         cur.close()
+    except:
         con.close()
         return -1
-    cur.close()
     con.close()
     return int(cloudy[0])
 
@@ -263,9 +263,9 @@ def setCloudy(cloudy):
     try:
         cur.execute("UPDATE controls SET cloudy = " + str(cloudy))
         con.commit()
+        cur.close()
     except:
         logging.error(traceback.format_exc()) 
-    cur.close()
     con.close()
 
 
@@ -292,9 +292,9 @@ def initModbusTable():
     try:
         cur.execute(modbus_sql)
         con.commit()
+        cur.close()
     except:
             logging.error(traceback.format_exc()) 
-    cur.close()
     con.close()
 
 def initNrgkicktable():
@@ -316,7 +316,8 @@ def initNrgkicktable():
     try:
         cur.execute(nrgkick_sql)
         con.commit()
-
+        cur.close()
+        cur = con.cursor()
         # check if there is already data
         cur.execute("SELECT * FROM nrgkick")
         nrgkick = cur.fetchone()
@@ -335,12 +336,13 @@ def initNrgkicktable():
             chargingcurrentmax,
             phases) VALUES (0,0,0,0,0,0,0,0,0,1)
             """
+            cur = con.cursor()
             cur.execute(nrg_insert_sql)
             con.commit()
+            cur.close()
             logging.debug(nrg_insert_sql)
     except:
         logging.error(traceback.format_exc()) 
-    cur.close()
     con.close()
 
 def initChargelogTable():
@@ -355,9 +357,9 @@ def initChargelogTable():
     try:
         cur.execute(chargelog_sql)
         con.commit()
+        cur.close()
     except:
         logging.error(traceback.format_exc()) 
-    cur.close()
     con.close()
 
 
@@ -376,18 +378,20 @@ def initControlsTable():
         cloudy integer NOT NULL
         )"""
         cur.execute(controls_sql)
-
+        cur.close()
+        cur = con.cursor()
         cur.execute("SELECT chargemode FROM controls")
         chargemode = cur.fetchone()
-
+        cur.close()
         # check if there are data otherwise init
         if (chargemode == None):
             # default = 0 (disabled)
+            cur = con.cursor()
             cur.execute("INSERT INTO 'controls' (chargemode,availablePowerRange,chargingPossible,cloudy) VALUES (0,0,0,0)")
             con.commit()
+            cur.close()
     except:
         logging.error(traceback.format_exc()) 
-    cur.close()
     con.close()
 
 class StdevFunc:

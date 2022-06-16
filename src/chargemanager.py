@@ -10,6 +10,7 @@ import traceback
 import chargemanagercommon
 import logging
 import configparser
+from datetime import datetime
 
 # --------------------------------------------------------------------------- #
 # Chargemanager is responsible for calculating the right charge strategy based 
@@ -50,11 +51,11 @@ def checkCloudyConditions():
     cloudy = 0
     
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
 
     stdDev = 0
     trend = None
     try:
+        cur = con.cursor()
         cur.execute("select pvprod from modbus WHERE timestamp between datetime('now','-15 minute','localtime') AND datetime('now','localtime') order by timestamp asc")
         result = cur.fetchall()
         cur.close()
@@ -82,18 +83,18 @@ def checkCloudyConditions():
     # check if it is cloudy
     if (stdDev > STD_DEV_THRESHOLD):
         cloudyCounter += 2
-        if (cloudyCounter >= 60):
-            cloudyCounter = 60
+        if (cloudyCounter >= 70):
+            cloudyCounter = 70
     else:
         # decrease slower than increase...
         cloudyCounter -= 1
         if (cloudyCounter <= 0):
             cloudyCounter = 0
 
-    if (cloudyCounter > 35):
+    if (cloudyCounter > 30):
         if (cloudyModeEnabled == False):
             cloudyModeEnabled = True
-            cloudyCounter = 60
+            cloudyCounter = 70
         cloudy = 1
         logging.debug("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy) + ", trend: " + str(trend[0]) + ", cloudyCnt: " + str(cloudyCounter) + ", cloudymodeEnabled: " + str(cloudyModeEnabled))
     else:
@@ -112,10 +113,12 @@ def calcEfficientChargingStrategy():
     soc = 0
 
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     try:
+        cur = con.cursor()
         cur.execute("select avg(availablepower_withoutcharging),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-4 minute','localtime') AND datetime('now','localtime') UNION select avg(availablepower_withoutcharging),max(soc),min(batterypower) from modbus WHERE timestamp between datetime('now','-8 minute','localtime') AND datetime('now','-4 minute','localtime')")
         rows = cur.fetchall()
+        cur.close()
 
         first = True
         index = 0
@@ -147,8 +150,6 @@ def calcEfficientChargingStrategy():
             first = False
     except:
         logging.error(traceback.format_exc())  
-    
-    cur.close()
     con.close()
      
     # check if weather is cloudy
@@ -158,6 +159,7 @@ def calcEfficientChargingStrategy():
         chargemanagercommon.setCloudy(cloudyConditions)
     # due to cloudy conditions we want to charge with low rates to increase stability
     
+    thisDayTime = datetime.now()
     minCharge = 0
     # get min charge threshold based on PHASES configuration from properties file
     phases = chargemanagercommon.getPhases()
@@ -191,6 +193,12 @@ def calcEfficientChargingStrategy():
         # we need to set threshold to a low value to avoid to stop after the next round
         house_battery_soc_threshold_start_charging = int(soc) - 5
     else:
+        if (thisDayTime.hour < 16 and thisDayTime.hour > 8):
+            chargemanagercommon.setChargemode(2) # slow
+            logging.info("Auto switch from tracked to slow mode! Hour: " + str(thisDayTime.hour))
+        else:
+            chargemanagercommon.setChargemode(0) # disabled
+            logging.info("Auto switch from tracked to disabled mode! Hour: " + str(thisDayTime.hour))
         chargingPossible = 0
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
 
@@ -242,10 +250,16 @@ def calcEfficientChargingStrategy():
         # break waiting for recalculation
         powerChangeCount = 10000
         
-        # stop charging only if sun is really left (under min charge, otherwise powerChangeCount = 10000 breaks halt lower timer to allow a power recalculation)
+        # stop charging only if sun is really left and it is out of time range (under min charge, otherwise powerChangeCount = 10000 breaks halt lower timer to allow a power recalculation)
         if (newAvailablePowerRange < minCharge):
-            chargingPossible = 0
             logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter) + " currentBatteryPower: " + str(currentBatteryPower))
+            if (thisDayTime.hour < 16 and thisDayTime.hour > 8):
+                chargemanagercommon.setChargemode(2) # slow
+                logging.info("Battery protection switch to slow mode! Hour: " + str(thisDayTime.hour))
+            else:
+                chargemanagercommon.setChargemode(0) # disabled
+                logging.info("Battery protection switch to disabled mode! Hour: " + str(thisDayTime.hour))
+            chargingPossible = 0
     else:
         batteryProtectionEnabled = False
 
@@ -255,17 +269,17 @@ def calcEfficientChargingStrategy():
         powerChangeCount = 0
 
         con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-        cur = con.cursor()
         try:
             # reset toggle if there is no free power anymore and charging was disabled to avoid jumping back from manual mode to tracked
             cm = chargemanagercommon.getChargemode()
             if (chargingPossible == 0 and cm == 0): # 0 DISABLED     
                 toggleToTrackedMode = True
+            cur = con.cursor()
             cur.execute("UPDATE controls set availablePowerRange = " + str(availablePowerRange) + ", chargingPossible=" + str(chargingPossible))
             con.commit()
+            cur.close()
         except:
             logging.error(traceback.format_exc()) 
-        cur.close()
         con.close()
 
         logging.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible) + " phases: " + str(phases) + " cloudy: " + str(cloudyConditions) + " minCharge: " + str(minCharge) + " soc:" + str(soc))
@@ -286,11 +300,13 @@ def cleanupData():
         cur = con.cursor()
         cur.execute("delete from chargelog where timestamp < datetime('now','-72 hour','localtime')")
         con.commit()
+        cur.close()
+        cur = con.cursor()
         cur.execute("vacuum")
         con.commit()
+        cur.close()
     except:
         logging.error(traceback.format_exc()) 
-    cur.close()
     con.close() 
 
 #
@@ -307,7 +323,13 @@ if __name__ == "__main__":
             logging.debug("sleeped " + str(READ_INTERVAL_SEC) + " seconds")
             try:
                 calcEfficientChargingStrategy()
-                cleanupData()
+
+                dt = datetime.now()
+                # clean data 00:00:<31
+                if (dt.hour == 0 and dt.minute == 0 and dt.second < 19):
+                    start = time.process_time()
+                    cleanupData()
+                    logging.info("cleanupData duration: " + str(time.process_time() - start))
             except:
                 logging.error(traceback.format_exc())
     except KeyboardInterrupt:

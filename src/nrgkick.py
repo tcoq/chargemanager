@@ -151,6 +151,8 @@ def readAndUpdate():
         resp.status_code
         resp.close()
 
+        isConnected = 0
+        
         try:
             errorcode = settings['Info']['ErrorCodes'][0]
             isConnected = boolToInt(settings['Info']['Connected'])
@@ -190,9 +192,9 @@ def readAndUpdate():
             logging.debug(nrg_update_sql)
             cur.execute(nrg_update_sql)
             con.commit()
+            cur.close()
         except:
             logging.error(traceback.format_exc()) 
-        cur.close()
         con.close() 
     except:
         logging.error(traceback.format_exc())  
@@ -208,9 +210,9 @@ def setNrgkickDisconnected():
     try:
         cur.execute("UPDATE nrgkick SET connected = 0")
         con.commit()
+        cur.close()
     except:
         logging.error(traceback.format_exc()) 
-    cur.close()
     con.close()
 
 #
@@ -243,15 +245,14 @@ if __name__ == "__main__":
                 try:
                     cur.execute("SELECT availablePowerRange,chargingPossible,chargemode FROM controls")
                     data = cur.fetchone()
+                    cur.close()
                     availablePowerRange = data[0]
                     chargingPossible = data[1]
                     chargemode = data[2]
                 except:
                     logging.error(traceback.format_exc()) 
-                    cur.close()
                     con.close()
                     continue # ignore the rest of code an retry until we get database back because we do not have plausible values
-                cur.close()
                 con.close()
 
                 # calc charge power / min = 6 (default)
@@ -307,9 +308,9 @@ if __name__ == "__main__":
                     # chargingPossible is a problem in this condition if car is full and sun is shining / need to think about a better way for this tracking
                     cur.execute("INSERT INTO 'chargelog' (timestamp,currentChargingPower,chargingPossible) VALUES ('"+ str(timestamp) + "',"  + str(actualPower) + "," + str(chargingPossible) + ")")
                     con.commit()
+                    cur.close()
                 except:
                     logging.error(traceback.format_exc()) 
-                cur.close()
                 con.close()
                 retryDisconnectCount = 0
             else:

@@ -9,7 +9,7 @@ import ctypes
 import sqlite3
 import logging
 import pytz, os
-from datetime import datetime, timezone
+from datetime import datetime
 import time
 import traceback
 import chargemanagercommon
@@ -68,9 +68,9 @@ def cleanupData():
         con.commit()
         cur.execute("vacuum")
         con.commit()
+        cur.close()
     except:
         logging.error(traceback.format_exc()) 
-    cur.close()
     con.close() 
 
 #
@@ -125,6 +125,7 @@ def readModbus(client):
     try:
         cur.execute("SELECT chargingpower FROM nrgkick")
         nrgkick = cur.fetchone()
+        cur.close()
         if nrgkick == None:
             logging.error("NRGKick table is empty!")
         else:
@@ -135,14 +136,14 @@ def readModbus(client):
                 availablepower_withoutcharging = available_power + nrgkick_power    
             else:             
                 availablepower_withoutcharging = available_power           
-            
+            cur = con.cursor()
             data_sql = "INSERT INTO 'modbus' (timestamp,pvprod,houseconsumption,acpower,acpowertofromgrid,dcpower,availablepower_withoutcharging,availablepowerrange,temperature,status,batterypower,batterystatus,soc,soh) VALUES ('"+ str(timestamp) + "',"  + str(pv_prod) + "," + str(house_consumption) + "," + str(ac_power) + "," + str(ac_to_from_grid) + "," + str(dc_power) + "," + str(availablepower_withoutcharging) + "," + str(availablepowerrange) + "," + str(temp/100) + "," + str(status) + "," + str(battery_power) + "," + str(battery_status) + "," + str(soc) + "," + str(soh) + ")"
             logging.debug(data_sql)
             cur.execute(data_sql)
             con.commit()
+            cur.close()
     except:
         logging.error(traceback.format_exc()) 
-    cur.close()
     con.close() 
 
     # logging where mybe a bug occured dureing reading modbus
@@ -168,7 +169,13 @@ if __name__ == "__main__":
                 client = ModbusClient(SOLAREDGE_INVERTER_IP, port=config.get('Solaredge', 'modbus.port'))
                 readModbus(client)
                 client.close()
-                cleanupData()
+                
+                dt = datetime.now()
+                # clean data 00:00:<31
+                if (dt.hour == 0 and dt.minute == 1 and dt.second < 29):
+                    start = time.process_time()
+                    cleanupData()
+                    logging.info("cleanupData duration: " + str(time.process_time() - start))
             except:
                 logging.error(traceback.format_exc())  
         
