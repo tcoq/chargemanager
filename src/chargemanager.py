@@ -193,35 +193,8 @@ def calcEfficientChargingStrategy():
         # we need to set threshold to a low value to avoid to stop after the next round
         house_battery_soc_threshold_start_charging = int(soc) - 5
     else:
-        if (thisDayTime.hour < 16 and thisDayTime.hour > 8):
-            chargemanagercommon.setChargemode(2) # slow
-            logging.info("Auto switch from tracked to slow mode! Hour: " + str(thisDayTime.hour))
-        else:
-            chargemanagercommon.setChargemode(0) # disabled
-            logging.info("Auto switch from tracked to disabled mode! Hour: " + str(thisDayTime.hour))
         chargingPossible = 0
         house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
-
-    # if tracked mode is already toggle to avoid to reactive if a manual mode switch by user
-    # avoid switching to tracked morde if it is cloudy
-    if (chargemanagercommon.getChargemode() == 3 or cloudyConditions == 1):
-        toggleToTrackedMode = False
-    # automatically switch from SLOW to TRACKED charge mode if CHARGEMODE_AUTO is enabled 
-    # and toggleToTrackedMode == True which is used to only change chargemode once in one charging-session 
-    # (currentAvailablePower) >= minCharge + 250 = use a little bit more min power to avoid falling back and stopp charing 
-    # and battery soc < 89%
-    if (toggleToTrackedMode == True and 
-        CHARGEMODE_AUTO == 1 and
-        chargingPossible == 1 and 
-        newAvailablePowerRange >= (minCharge + 250) and 
-        chargemanagercommon.getChargemode() != 0 and # disabled
-        chargemanagercommon.getChargemode() != 1): # fast
-        if (chargemanagercommon.getChargemode() == 2):
-            # set to TRACKED mode
-            chargemanagercommon.setChargemode(3)
-            # toggle to avoid multi toggle in a charging-session / reset toggle is done below if charinging is stopped
-            toggleToTrackedMode = False
-            logging.info("Auto switch to tracked mode! currentBatteryPower: " + str(currentBatteryPower) + " soc: " + str(soc) + " newAvailablePowerRange: " + str(newAvailablePowerRange))
 
     # 5 minutes / 300 seconds
     changeTimeSec = 300
@@ -263,10 +236,43 @@ def calcEfficientChargingStrategy():
     else:
         batteryProtectionEnabled = False
 
-    # guarantee stable power for at least 5 minutes and also avoid to start / stop charging to much
+    # if tracked mode is already on toggle to tracked mode: avoid to reactivate if a manual mode switch by user
+    # avoid switching to tracked mode if it is cloudy
+    if (chargemanagercommon.getChargemode() == 3 or cloudyConditions == 1):
+        toggleToTrackedMode = False
+
+    # GUARANTEE stable power for at least 5 minutes and also avoid to start / stop charging to much
     if ((powerChangeCount >= (changeTimeSec / READ_INTERVAL_SEC))):
         availablePowerRange = newAvailablePowerRange
         powerChangeCount = 0
+
+        # automatically switch from SLOW to TRACKED charge mode if CHARGEMODE_AUTO is enabled 
+        # and toggleToTrackedMode == True which is used to only change chargemode once in one charging-session 
+        # (currentAvailablePower) >= minCharge + 400 = use a little bit more min power to avoid falling back to slow charing 
+        if (toggleToTrackedMode == True and 
+            CHARGEMODE_AUTO == 1 and
+            chargingPossible == 1 and 
+            newAvailablePowerRange >= (minCharge + 400) and 
+            chargemanagercommon.getChargemode() != 0 and # disabled
+            chargemanagercommon.getChargemode() != 1): # fast
+            if (chargemanagercommon.getChargemode() == 2):
+                # set to TRACKED mode
+                chargemanagercommon.setChargemode(3)
+                # toggle to avoid multi toggle in a charging-session / reset toggle is done below if charinging is stopped
+                toggleToTrackedMode = False
+                logging.info("Auto switch to tracked mode! currentBatteryPower: " + str(currentBatteryPower) + " soc: " + str(soc) + " newAvailablePowerRange: " + str(newAvailablePowerRange))
+
+        # in this case it is cloudy, TRACKED MODE is on and sun was available but suddenly gone..
+        # we need to avoid to start/stop charging! For this reason switch to slow mode and charge with battery support until soc is high enough
+        if (chargingPossible == 0 and 
+            thisDayTime.hour < 16 and 
+            thisDayTime.hour > 8 and 
+            chargemanagercommon.getChargemode() == 3 and
+            int(soc) >= 90):
+            chargemanagercommon.setChargemode(2) # slow
+            # allow to switch back to tracked mode when conditions are getting better...
+            toggleToTrackedMode = True
+            logging.info("Auto switch from tracked to slow mode! Hour: " + str(thisDayTime.hour))
 
         con = sqlite3.connect('/data/chargemanager_db.sqlite3')
         try:
@@ -281,7 +287,7 @@ def calcEfficientChargingStrategy():
         except:
             logging.error(traceback.format_exc()) 
         con.close()
-
+        
         logging.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible) + " phases: " + str(phases) + " cloudy: " + str(cloudyConditions) + " minCharge: " + str(minCharge) + " soc:" + str(soc))
 
     # check if power ranges changes
@@ -322,7 +328,8 @@ if __name__ == "__main__":
             time.sleep(READ_INTERVAL_SEC)
             logging.debug("sleeped " + str(READ_INTERVAL_SEC) + " seconds")
             try:
-                calcEfficientChargingStrategy()
+                if (chargemanagercommon.isNrgkickConnected and chargemanagercommon.getChargemode() != 0):
+                    calcEfficientChargingStrategy()
 
                 dt = datetime.now()
                 # clean data 00:00:<31
