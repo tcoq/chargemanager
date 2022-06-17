@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 #
-from pickle import FALSE
 import threading
 import logging
 import sqlite3 
@@ -230,33 +229,6 @@ def setChargemode(chargemode):
     except:
         logging.error(traceback.format_exc()) 
     con.close()
-
-def setNrgkickDisconnected():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
-    try:
-        cur.execute("UPDATE nrgkick SET connected = 0")
-        con.commit()
-        cur.close()
-    except:
-        logging.error(traceback.format_exc()) 
-    con.close()
-
-def isNrgkickConnected():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
-    status = 0
-    try:
-        cur.execute("SELECT connected FROM nrgkick")
-        status = cur.fetchone()
-        cur.close()
-    except:
-        logging.error(traceback.format_exc()) 
-    con.close()
-    if (status == 0):
-        return False
-    else:
-        return True
 
 #
 # Returns cloudy status

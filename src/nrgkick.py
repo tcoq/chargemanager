@@ -204,6 +204,17 @@ def readAndUpdate():
 
     return chargingpower
 
+def setNrgkickDisconnected():
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        cur.execute("UPDATE nrgkick SET connected = 0")
+        con.commit()
+        cur.close()
+    except:
+        logging.error(traceback.format_exc()) 
+    con.close()
+
 #
 #	Main, init and repeat reading
 #
@@ -306,7 +317,7 @@ if __name__ == "__main__":
                 # count retries and only disable after 3 times unavailable to avoid short network interrupts
                 retryDisconnectCount += 1
                 if (retryDisconnectCount == 3):
-                        chargemanagercommon.setNrgkickDisconnected()
+                        setNrgkickDisconnected()
                         kickWasStartedNow = False
                         logging.info("Could not reach NRGKICK, set it now to disconnect status!")
                 elif (retryCountStartCharging > 3):
