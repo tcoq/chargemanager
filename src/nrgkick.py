@@ -307,8 +307,9 @@ if __name__ == "__main__":
                 retryDisconnectCount += 1
                 if (retryDisconnectCount == 3):
                         chargemanagercommon.setNrgkickDisconnected()
+                        chargemanagercommon.setChargemode(0)
                         kickWasStartedNow = False
-                        logging.info("Could not reach NRGKICK, set it now to disconnect status!")
+                        logging.info("Could not reach NRGKICK, set it now to disconnect status and reset chargemode to disabled!")
                 elif (retryCountStartCharging > 3):
                         # wait 30 seconds after try to reconnect, to reduce heavy reconnect try if it seems to be disconnected
                         time.sleep(30)

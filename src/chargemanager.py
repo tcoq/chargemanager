@@ -328,7 +328,7 @@ if __name__ == "__main__":
             time.sleep(READ_INTERVAL_SEC)
             logging.debug("sleeped " + str(READ_INTERVAL_SEC) + " seconds")
             try:
-                if (chargemanagercommon.isNrgkickConnected and chargemanagercommon.getChargemode() != 0):
+                if (chargemanagercommon.isNrgkickConnected() and chargemanagercommon.getChargemode() != 0):
                     calcEfficientChargingStrategy()
 
                 dt = datetime.now()
