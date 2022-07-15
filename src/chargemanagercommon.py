@@ -235,7 +235,7 @@ def setNrgkickDisconnected():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
     try:
-        cur.execute("UPDATE nrgkick SET connected = 0")
+        cur.execute("UPDATE nrgkick SET connected = 0, chargingpower = 0")
         con.commit()
         cur.close()
     except:

@@ -170,31 +170,26 @@ def calcEfficientChargingStrategy():
     elif (phases == 3):
         minCharge = 4500
 
+    badTrackedChargingConditions = 0
+
     if ((cloudyConditions == 1) and newAvailablePowerRange >= minCharge):
         # reduce power in steps, if its cloudy to avoid to low charging values...
         if (newAvailablePowerRange > (minCharge + 2500)):
             newAvailablePowerRange = chargemanagercommon.getPowerRange(minCharge + 2000)
         elif (newAvailablePowerRange > (minCharge + 1500)):
             newAvailablePowerRange = chargemanagercommon.getPowerRange(minCharge + 1000)
+            badTrackedChargingConditions = 1
         elif (newAvailablePowerRange > (minCharge + 1000)):
             newAvailablePowerRange = chargemanagercommon.getPowerRange(minCharge + 700)
+            badTrackedChargingConditions = 1
         else:
             newAvailablePowerRange = minCharge
 
-    # enable charging when battery soc is high enougth and useful power is existing
-    # soc == 0 means house-battery is disabled / not available
-    if ((int(soc) >= house_battery_soc_threshold_start_charging or int(soc) == 0) and newAvailablePowerRange >= minCharge):
+    # enable charging when enought PV power exist
+    if (newAvailablePowerRange >= minCharge):
         chargingPossible = 1
-        # allow to get 5% out of house-battery for stabel charging conditions
-        house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc')) - 5
-    elif (currentBatteryPower > int(config.get('Chargemanager', 'battery.max_input'))):
-        # in this case we have quite enought power and battery cannot get more because limit is at 4900
-        chargingPossible = 1
-        # we need to set threshold to a low value to avoid to stop after the next round
-        house_battery_soc_threshold_start_charging = int(soc) - 5
     else:
         chargingPossible = 0
-        house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
 
     # 5 minutes / 300 seconds
     changeTimeSec = 300
@@ -238,7 +233,7 @@ def calcEfficientChargingStrategy():
 
     # if tracked mode is already on toggle to tracked mode: avoid to reactivate if a manual mode switch by user
     # avoid switching to tracked mode if it is cloudy
-    if (chargemanagercommon.getChargemode() == 3 or cloudyConditions == 1):
+    if (chargemanagercommon.getChargemode() == 3 or badTrackedChargingConditions == 1):
         toggleToTrackedMode = False
 
     # GUARANTEE stable power for at least 5 minutes and also avoid to start / stop charging to much
@@ -253,6 +248,7 @@ def calcEfficientChargingStrategy():
             CHARGEMODE_AUTO == 1 and
             chargingPossible == 1 and 
             newAvailablePowerRange >= (minCharge + 400) and 
+            int(soc) > house_battery_soc_threshold_start_charging and
             chargemanagercommon.getChargemode() != 0 and # disabled
             chargemanagercommon.getChargemode() != 1): # fast
             if (chargemanagercommon.getChargemode() == 2):
