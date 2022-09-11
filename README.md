@@ -15,8 +15,8 @@ The advantages of this charging manager are as follows:
 * Auto detection for disabling phases via fuses
 * Token authentification for public deployments with brute force protection available
 * All values of the Solaredge inverter and the NRGKICK are stored in a SQLite database and are available for other evaluations
-* NEW!: TP-Link smart plug support (HS110 / HS100) 
-* NEW!: Settings web form 
+* **NEW!**: TP-Link smart plug support (HS110 / HS100) 
+* **NEW!**: Settings web form 
 
 ![picture alt](https://github.com/tcoq/chargemanager/blob/main/chargemanager.jpg?raw=true "Main screen")
 
@@ -51,51 +51,51 @@ Please go after you run the application to and edit the default values to your e
 
 http://192.xxx.xxx.xxx:5000/settings
 
-###### PV TRACKING / Auto on [0|1]
+###### **PV TRACKING / Auto on [0|1]**
 If set to 1 (default) chargestratgy is automatically switched from "SLOW" to "TRACKED" if battery is charged enought and if it is not cloudy, 0 means disabled.
-###### PV TRACKING / On at SOC [%]
+###### **PV TRACKING / On at SOC [%]**
 Min SOC of house-battery when swtiching to "TRACKED".
-###### HOUSE BATTERY / PV TRACKING / Max consumption [W]
+###### **HOUSE BATTERY / PV TRACKING / Max consumption [W]**
 Max allowed battery consumption during charing for compensation of short-term load peaks default is 2600 (best practice) Your can set it lower, but be careful to increase it to avoid charging from your house battery to much. 
-###### HOUSE BATTERY / PV TRACKING / Max charging [W]
+###### **HOUSE BATTERY / PV TRACKING / Max charging [W]**
 Max power input into the battery (depending on individual battery-hardware) 4950 is default for BYD LVS 8.0. If PV reaches more available power than battery can consume beyond this value, charging will start to avoid to feed free-energy into grid.
 
-###### CAR / Max phases [n]
+###### **CAR / Max phases [n]**
 Number of phases which your car max allows to load or are max available, for calculating the right charge power (e.g. most small battery VW only allow 2 phases) 
 If your NRGKICK has deactived phases (e.g. 1 of 3) the lower value will be used instead.
 
-###### TP-LINK SMART PLUG / IP
+###### **TP-LINK SMART PLUG / IP**
 IP of HS100 or HS110 smart plug.	
-###### TP-LINK SMART PLUG / Enabled [0|1]	
+###### **TP-LINK SMART PLUG / Enabled [0|1]**	
 Turn it on (1) or deactivate (0).
-###### TP-LINK SMART PLUG / On at [W]	
+###### **TP-LINK SMART PLUG / On at [W]**	
 Available "free" PV power threshold on which smart plug should switch on [Watt]
-###### TP-LINK SMART PLUG / On at SOC [%]	
+###### **TP-LINK SMART PLUG / On at SOC [%]**	
 Min SOC of house-battery when swtiching smart plug on. 
-###### TP-LINK SMART PLUG / Power on duration [s]
+###### **TP-LINK SMART PLUG / Power on duration [s]**
 Amount of seconds in total by day which smart plug should stay on.	
-###### TP-LINK SMART PLUG / Start hour [h]
+###### **TP-LINK SMART PLUG / Start hour [h]**
 Earliest full hour from which smart plug should be turned on. (24h format, e.g. 13,14 or 15)
 
-###### SOLAREDGE / IP	
+###### **SOLAREDGE / IP**	
 Ip address of solaredge inverter.
-###### SOLAREDGE / Modbus port [n]	
+###### **SOLAREDGE / Modbus port [n]**	
 Solaredge modbus port (modbus is by default deactivated in Solaredge inverters, use Solaredge-SetApp for activation)
-###### SOLAREDGE / PV peak power [W]
+###### **SOLAREDGE / PV peak power [W]**
 Specifiy the peak power of your PV modules in watt e.g. 9400 (this value is necessary for some calculations like cloud-detection)
 
-###### NRGKICK / Measurements URL	
+###### **NRGKICK / Measurements URL**	
 Data url of nrgkick in this format http://192.168.178.xx/api/measurements/04:91:62:76:XX:XX
-###### NRGKICK / Settings URL	
+###### **NRGKICK / Settings URL**	
 Settings url of nrgkick in this format http://192.168.178.xx/api/settings/04:91:62:76:XX:XX
-###### NRGKICK / Password
+###### **NRGKICK / Password**
 NRGKICK password (default 0000)
 
-###### WEB / UI port	
+###### **WEB / UI port**	
 Port on which UI should start
-###### WEB / Secret	
+###### **WEB / Secret**	
 Key for URL authentication example http://localhost:5000?secret=VSSDCX34FVAY50
-###### WEB / Secret enabled [0|1]
+###### **WEB / Secret enabled [0|1]**
 Specifiy if URL authentication is enabled or not (1=enabled, 0=disabled)
 
 (Note: Changes in "WEB" section requires a server reboot)
