@@ -13,7 +13,6 @@ from datetime import datetime
 import time
 import traceback
 import chargemanagercommon
-import configparser
 
 # --------------------------------------------------------------------------- #
 # This python script reads every 30 seconds values from Solaredge inverter and writes them to SQLLite database
@@ -21,14 +20,18 @@ import configparser
 # IMPORTANT: other Solaredge inversters might have different modbus register adresses!
 # --------------------------------------------------------------------------- #
 
-config = configparser.RawConfigParser()
-config.read('chargemanager.properties')
+log = logging.getLogger(__name__)
 
-logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename='/data/solaredge.log', filemode='w', level=logging.INFO)
-log = logging.getLogger()
-
-SOLAREDGE_INVERTER_IP = config.get('Solaredge', 'inverter.ip')
+SOLAREDGE_INVERTER_IP = 0
+SOLAREDGE_MODBUS_PORT = 0
 READ_INTERVAL_SEC = 15
+
+def readSettings():
+    global SOLAREDGE_INVERTER_IP,SOLAREDGE_MODBUS_PORT
+    if (chargemanagercommon.SOLAREDGE_SETTINGS_DIRTY == True):
+        SOLAREDGE_INVERTER_IP = chargemanagercommon.getSetting(chargemanagercommon.SEIP)
+        SOLAREDGE_MODBUS_PORT = chargemanagercommon.getSetting(chargemanagercommon.SEPORT)
+        chargemanagercommon.SOLAREDGE_SETTINGS_DIRTY == False 
 
 # Reading & decoding data from modbus
 
@@ -60,7 +63,7 @@ def readData(client,address,size,typ):
 #	Delete data older 72 h
 #
 def cleanupData():
-    logging.debug("Try connecting sqllite...")
+    log.debug("Try connecting sqllite...")
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     try:
         cur = con.cursor()
@@ -70,7 +73,7 @@ def cleanupData():
         con.commit()
         cur.close()
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
     con.close() 
 
 #
@@ -127,7 +130,7 @@ def readModbus(client):
         nrgkick = cur.fetchone()
         cur.close()
         if nrgkick == None:
-            logging.error("NRGKick table is empty!")
+            log.error("NRGKick table is empty!")
         else:
             nrgkick_power = int(nrgkick[0])
 
@@ -138,35 +141,36 @@ def readModbus(client):
                 availablepower_withoutcharging = available_power           
             cur = con.cursor()
             data_sql = "INSERT INTO 'modbus' (timestamp,pvprod,houseconsumption,acpower,acpowertofromgrid,dcpower,availablepower_withoutcharging,availablepowerrange,temperature,status,batterypower,batterystatus,soc,soh) VALUES ('"+ str(timestamp) + "',"  + str(pv_prod) + "," + str(house_consumption) + "," + str(ac_power) + "," + str(ac_to_from_grid) + "," + str(dc_power) + "," + str(availablepower_withoutcharging) + "," + str(availablepowerrange) + "," + str(temp/100) + "," + str(status) + "," + str(battery_power) + "," + str(battery_status) + "," + str(soc) + "," + str(soh) + ")"
-            logging.debug(data_sql)
+            log.debug(data_sql)
             cur.execute(data_sql)
             con.commit()
             cur.close()
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
     con.close() 
 
-    # logging where mybe a bug occured dureing reading modbus
-    if (availablepower_withoutcharging <= 0 and pv_prod >= 2500):
-        logging.info("ATTENTION: MAYBE WE READ WRONG VALUES FROM MODBUS, CHECK IF POWER VALUES ARE PLAUSIBLE:")
-        logging.info("AC: " + str(ac) + " AC sf: " + str(ac_scale_factor) + " AC power: " + str(ac_power) + " AC to/from grid: " + str(ac_to_from_grid) + " AC grid scale factor: " + str(ac_grid_scale_factor) + " AC power to/from grid: " + str(ac_power_to_from_grid))
-        logging.info("House: " + str(house_consumption) + " DC: " + str(dc) + " DC scale factor: " + str(dc_scale_factor) + " DC power: " + str(dc_power) + " Temp: " + str(temp/100))
-        logging.info("Battery status: " + str(battery_status) + " Battery power: " + str(battery_power) + " SOC: " + str(soc) + " SOH:" + str(soh))
-        logging.info("PV production: " + str(pv_prod) + " available power: " + str(available_power) + " available power without battery / range: " + str(availablepower_withoutcharging) + "/" +  str(availablepowerrange) + " nrgkick power: " + str(nrgkick_power) + " inverterstatus:" + str(status))
+    # for debugging
+    if (False):
+        log.info("AC: " + str(ac) + " AC sf: " + str(ac_scale_factor) + " AC power: " + str(ac_power) + " AC to/from grid: " + str(ac_to_from_grid) + " AC grid scale factor: " + str(ac_grid_scale_factor) + " AC power to/from grid: " + str(ac_power_to_from_grid))
+        log.info("House: " + str(house_consumption) + " DC: " + str(dc) + " DC scale factor: " + str(dc_scale_factor) + " DC power: " + str(dc_power) + " Temp: " + str(temp/100))
+        log.info("Battery status: " + str(battery_status) + " Battery power: " + str(battery_power) + " SOC: " + str(soc) + " SOH:" + str(soh))
+        log.info("PV production: " + str(pv_prod) + " available power: " + str(available_power) + " available power without battery / range: " + str(availablepower_withoutcharging) + "/" +  str(availablepowerrange) + " nrgkick power: " + str(nrgkick_power) + " inverterstatus:" + str(status))
 
 
 #
 #	Main, init and repeat reading
 #
-if __name__ == "__main__":
+def main():
     os.environ['TZ'] = 'Europe/Berlin'
     time.tzset()
-    chargemanagercommon.init()
 
+    log.info("Module " + str(__name__) + " started...")
     try:
         while True:
             try:
-                client = ModbusClient(SOLAREDGE_INVERTER_IP, port=config.get('Solaredge', 'modbus.port'))
+                readSettings()
+
+                client = ModbusClient(SOLAREDGE_INVERTER_IP, port=SOLAREDGE_MODBUS_PORT)
                 readModbus(client)
                 client.close()
                 
@@ -175,12 +179,12 @@ if __name__ == "__main__":
                 if (dt.hour == 0 and dt.minute == 1 and dt.second < 29):
                     start = time.process_time()
                     cleanupData()
-                    logging.info("cleanupData duration: " + str(time.process_time() - start))
+                    log.info("cleanupData duration: " + str(time.process_time() - start))
             except:
-                logging.error(traceback.format_exc())  
+                log.error(traceback.format_exc())  
         
             time.sleep(READ_INTERVAL_SEC)
-            logging.debug("sleeped " + str(READ_INTERVAL_SEC) + " seconds")
+            log.debug("sleeped " + str(READ_INTERVAL_SEC) + " seconds")
     except KeyboardInterrupt:
         pass
     

@@ -2,14 +2,13 @@
 #
 import sqlite3 
 
-import pytz, os
-from datetime import datetime, timezone
+import os
+from datetime import datetime
 
 import time
 import traceback
 import chargemanagercommon
 import logging
-import configparser
 from datetime import datetime
 
 # --------------------------------------------------------------------------- #
@@ -17,28 +16,35 @@ from datetime import datetime
 # PV values
 # --------------------------------------------------------------------------- #
 
-config = configparser.RawConfigParser()
-config.read('chargemanager.properties')
-
-logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename='/data/chargemanager.log', filemode='w', level=logging.INFO)
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 # IMPORTANT: if you want to change this interval pls recalculate checkCloudyConditions!
 READ_INTERVAL_SEC = 10
 availablePowerRange = 0
 # init value with a high number to enable charging directly after software startup
 powerChangeCount = 10000
-house_battery_soc_threshold_start_charging = int(config.get('Chargemanager', 'battery.start_soc'))
-# calculate threshold depending on peak performance of total solar-power, 
-# ... tested on 9400 watt system with std_dev_threshold of 585, which results in divisor of 16
-STD_DEV_THRESHOLD = int(config.get('Solaredge', 'modules.peak')) / 16
-CHARGEMODE_AUTO = int(config.get('Chargemanager', 'chargemode.auto'))
+HOUSE_BAT_SOCO_START = 0
+BATTERY_MAX_CONSUMPTION = 0
+STD_DEV_THRESHOLD = 0
+CHARGEMODE_AUTO = 0
+
 batteryProtectionCounter = 0
 batteryProtectionEnabled = False
 cloudyCounter = 0
 cloudyModeEnabled = False
 toggleToTrackedMode = True
 
+
+def readSettings():
+    global HOUSE_BAT_SOCO_START,BATTERY_MAX_CONSUMPTION,STD_DEV_THRESHOLD,CHARGEMODE_AUTO
+    if (chargemanagercommon.CHARGEMANAGER_SETTINGS_DIRTY == True):
+        HOUSE_BAT_SOCO_START = int(chargemanagercommon.getSetting(chargemanagercommon.BATTERYSTARTSOC))
+        BATTERY_MAX_CONSUMPTION = int(chargemanagercommon.getSetting(chargemanagercommon.BATTERYMAXCONSUMPTION))
+        # calculate threshold depending on peak performance of total solar-power, 
+        # ... tested on 9400 watt system with std_dev_threshold of 585, which results in divisor of 16
+        STD_DEV_THRESHOLD = int(chargemanagercommon.getSetting(chargemanagercommon.PVPEAKPOWER)) / 16
+        CHARGEMODE_AUTO = int(chargemanagercommon.getSetting(chargemanagercommon.CHARGEMODEAUTO))
+        chargemanagercommon.CHARGEMANAGER_SETTINGS_DIRTY == False
 #
 # Method checks the standard derivation of the solar production of the last 15 minutes
 # returns :
@@ -77,7 +83,7 @@ def checkCloudyConditions():
             if (result != None):
                 stdDev = int(result)
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
     con.close() 
 
     # check if it is cloudy
@@ -96,7 +102,7 @@ def checkCloudyConditions():
             cloudyModeEnabled = True
             cloudyCounter = 70
         cloudy = 1
-        logging.debug("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy) + ", trend: " + str(trend[0]) + ", cloudyCnt: " + str(cloudyCounter) + ", cloudymodeEnabled: " + str(cloudyModeEnabled))
+        log.debug("Stdev: " + str(stdDev) + " cloudy: " + str(cloudy) + ", trend: " + str(trend[0]) + ", cloudyCnt: " + str(cloudyCounter) + ", cloudymodeEnabled: " + str(cloudyModeEnabled))
     else:
         cloudyModeEnabled = False
 
@@ -105,7 +111,7 @@ def checkCloudyConditions():
 # Calculte the efficient charging strategy
 #
 def calcEfficientChargingStrategy():
-    global availablePowerRange,powerChangeCount, house_battery_soc_threshold_start_charging, batteryProtectionCounter, batteryProtectionEnabled, toggleToTrackedMode
+    global availablePowerRange,powerChangeCount, batteryProtectionCounter, batteryProtectionEnabled, toggleToTrackedMode
     previousAvailablePowerRange = 0
     newAvailablePowerRange = 0
     chargingPossible = 0
@@ -143,13 +149,13 @@ def calcEfficientChargingStrategy():
                 currentBatteryPower = temprow2
                 soc = temprow1
             if (index >= 2):
-                logging.error("SQL returns more than 2 rows! ") 
+                log.error("SQL returns more than 2 rows! ") 
                 break
-            logging.debug(str(first) + " previousAvailablePowerRange: " + str(previousAvailablePowerRange) + " newAvailablePowerRange:" + str(newAvailablePowerRange) + " soc:" + str(soc) + " currentBatteryPower:" + str(currentBatteryPower))
+            log.debug(str(first) + " previousAvailablePowerRange: " + str(previousAvailablePowerRange) + " newAvailablePowerRange:" + str(newAvailablePowerRange) + " soc:" + str(soc) + " currentBatteryPower:" + str(currentBatteryPower))
             index += 1
             first = False
     except:
-        logging.error(traceback.format_exc())  
+        log.error(traceback.format_exc())  
     con.close()
      
     # check if weather is cloudy
@@ -194,11 +200,11 @@ def calcEfficientChargingStrategy():
     # 5 minutes / 300 seconds
     changeTimeSec = 300
 
-    logging.debug("Current (set) available power range: " + str(newAvailablePowerRange) + " previous range:" + str(previousAvailablePowerRange) + " new range:" + str(newAvailablePowerRange) + " availablePowerRange:" + str(availablePowerRange) + " minCharge: " + str(minCharge) + " phase: " + str(chargemanagercommon.getPhases()))
-    logging.debug("powerChangeCount: " + str(powerChangeCount) + " changeTimeSec:" + str(changeTimeSec) + " cloudy: " + str(cloudyConditions) + " currentBatteryPower: " + str(currentBatteryPower) + " chargingPossible: " + str(chargingPossible) + " soc: " + str(soc))
+    log.debug("Current (set) available power range: " + str(newAvailablePowerRange) + " previous range:" + str(previousAvailablePowerRange) + " new range:" + str(newAvailablePowerRange) + " availablePowerRange:" + str(availablePowerRange) + " minCharge: " + str(minCharge) + " phase: " + str(chargemanagercommon.getPhases()))
+    log.debug("powerChangeCount: " + str(powerChangeCount) + " changeTimeSec:" + str(changeTimeSec) + " cloudy: " + str(cloudyConditions) + " currentBatteryPower: " + str(currentBatteryPower) + " chargingPossible: " + str(chargingPossible) + " soc: " + str(soc))
 
     # check if battery consumption is very high (attention: currentBatteryPower has - sign during consumption and + sign during loading)
-    if (currentBatteryPower < (int(config.get('Chargemanager', 'battery.max_consumption')) * -1) and chargingPossible == 1):
+    if (currentBatteryPower < (BATTERY_MAX_CONSUMPTION * -1) and chargingPossible == 1):
         batteryProtectionCounter += 5
         if (batteryProtectionCounter >= 120):
             batteryProtectionCounter = 120
@@ -220,13 +226,13 @@ def calcEfficientChargingStrategy():
         
         # stop charging only if sun is really left and it is out of time range (under min charge, otherwise powerChangeCount = 10000 breaks halt lower timer to allow a power recalculation)
         if (newAvailablePowerRange < minCharge):
-            logging.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter) + " currentBatteryPower: " + str(currentBatteryPower))
+            log.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter) + " currentBatteryPower: " + str(currentBatteryPower))
             if (thisDayTime.hour < 16 and thisDayTime.hour > 8):
                 chargemanagercommon.setChargemode(2) # slow
-                logging.info("Battery protection switch to slow mode! Hour: " + str(thisDayTime.hour))
+                log.info("Battery protection switch to slow mode! Hour: " + str(thisDayTime.hour))
             else:
                 chargemanagercommon.setChargemode(0) # disabled
-                logging.info("Battery protection switch to disabled mode! Hour: " + str(thisDayTime.hour))
+                log.info("Battery protection switch to disabled mode! Hour: " + str(thisDayTime.hour))
             chargingPossible = 0
     else:
         batteryProtectionEnabled = False
@@ -248,7 +254,7 @@ def calcEfficientChargingStrategy():
             CHARGEMODE_AUTO == 1 and
             chargingPossible == 1 and 
             newAvailablePowerRange >= (minCharge + 400) and 
-            int(soc) > house_battery_soc_threshold_start_charging and
+            int(soc) > HOUSE_BAT_SOCO_START and
             chargemanagercommon.getChargemode() != 0 and # disabled
             chargemanagercommon.getChargemode() != 1): # fast
             if (chargemanagercommon.getChargemode() == 2):
@@ -256,19 +262,19 @@ def calcEfficientChargingStrategy():
                 chargemanagercommon.setChargemode(3)
                 # toggle to avoid multi toggle in a charging-session / reset toggle is done below if charinging is stopped
                 toggleToTrackedMode = False
-                logging.info("Auto switch to tracked mode! currentBatteryPower: " + str(currentBatteryPower) + " soc: " + str(soc) + " newAvailablePowerRange: " + str(newAvailablePowerRange))
+                log.info("Auto switch to tracked mode! currentBatteryPower: " + str(currentBatteryPower) + " soc: " + str(soc) + " newAvailablePowerRange: " + str(newAvailablePowerRange))
 
         # in this case it is cloudy, TRACKED MODE is on and sun was available but suddenly gone..
         # we need to avoid to start/stop charging! For this reason switch to slow mode and charge with battery support until soc is high enough
         if (chargingPossible == 0 and 
             thisDayTime.hour < 16 and 
             thisDayTime.hour > 8 and 
-            chargemanagercommon.getChargemode() == 3 and
-            int(soc) >= 90):
+            chargemanagercommon.getChargemode() == 3):
+            
             chargemanagercommon.setChargemode(2) # slow
             # allow to switch back to tracked mode when conditions are getting better...
             toggleToTrackedMode = True
-            logging.info("Auto switch from tracked to slow mode! Hour: " + str(thisDayTime.hour))
+            log.info("Auto switch from tracked to slow mode! Hour: " + str(thisDayTime.hour))
 
         con = sqlite3.connect('/data/chargemanager_db.sqlite3')
         try:
@@ -281,10 +287,10 @@ def calcEfficientChargingStrategy():
             con.commit()
             cur.close()
         except:
-            logging.error(traceback.format_exc()) 
+            log.error(traceback.format_exc()) 
         con.close()
         
-        logging.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible) + " phases: " + str(phases) + " cloudy: " + str(cloudyConditions) + " minCharge: " + str(minCharge) + " soc:" + str(soc))
+        log.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible) + " phases: " + str(phases) + " cloudy: " + str(cloudyConditions) + " minCharge: " + str(minCharge) + " soc:" + str(soc))
 
     # check if power ranges changes
     if (availablePowerRange != newAvailablePowerRange):
@@ -296,7 +302,7 @@ def calcEfficientChargingStrategy():
 #	Delete data older 72 h
 #
 def cleanupData():
-    logging.debug("Try connecting sqllite...")
+    log.debug("Try connecting sqllite...")
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     try:
         cur = con.cursor()
@@ -308,23 +314,26 @@ def cleanupData():
         con.commit()
         cur.close()
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
     con.close() 
 
 #
 #	Main, init and repeat reading
 #
-if __name__ == "__main__":
+def main():
     os.environ['TZ'] = 'Europe/Berlin'
     time.tzset()
-    chargemanagercommon.init() 
     
+    log.info("Module " + str(__name__) + " started...")
+
     try:
         while True:
+            readSettings()
+
             time.sleep(READ_INTERVAL_SEC)
-            logging.debug("sleeped " + str(READ_INTERVAL_SEC) + " seconds")
+            log.debug("sleeped " + str(READ_INTERVAL_SEC) + " seconds")
             try:
-                if (chargemanagercommon.isNrgkickConnected() and chargemanagercommon.getChargemode() != 0):
+                if (chargemanagercommon.isNrgkickConnected() == 1 and chargemanagercommon.getChargemode() != 0):
                     calcEfficientChargingStrategy()
 
                 dt = datetime.now()
@@ -332,9 +341,9 @@ if __name__ == "__main__":
                 if (dt.hour == 0 and dt.minute == 0 and dt.second < 19):
                     start = time.process_time()
                     cleanupData()
-                    logging.info("cleanupData duration: " + str(time.process_time() - start))
+                    log.info("cleanupData duration: " + str(time.process_time() - start))
             except:
-                logging.error(traceback.format_exc())
+                log.error(traceback.format_exc())
     except KeyboardInterrupt:
         pass
     

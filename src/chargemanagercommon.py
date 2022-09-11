@@ -1,13 +1,43 @@
 #!/usr/bin/python3
 #
 from pickle import FALSE
+from telnetlib import AUTHENTICATION
 import threading
 import logging
 import sqlite3 
 import math
 import traceback
 
+log = logging.getLogger(__name__)
+
 phases = 0
+
+SEIP = 'seip' 
+SEPORT = 'seport'  
+PVPEAKPOWER = 'pvpeakpower'
+BATTERYSTARTSOC ='batterystartsoc' 
+BATTERYMAXCONSUMPTION = 'batterymaxconsumption' 
+BATTERYMAXINPUT = 'batterymaxinput' 
+CHARGEMODEAUTO = 'chargemodeauto' 
+MEASUREMENTURL ='measurementsurl' 
+SETTINGSURL ='settingsurl' 
+CHARGERPASSWORD = 'chargerpassword' 
+CHARGINGPHASES = 'chargingphases' 
+WEBPORT = 'webport'
+SECRETKEY = 'secretkey' 
+AUTHENTICATIONENABLED = 'authenticationenabled' 
+PLUGIP = 'plugip' 
+PLUGONPOWER = 'plugonpower' 
+PLUGMAXSECONDS = 'plugmaxSeconds' 
+PLUGSTARTFROM ='plugstartFrom'
+PLUGSTARTFROMSOC ='plugstartFromSOC'
+PLUGENABLED ='plugEnabled'
+
+SOLAREDGE_SETTINGS_DIRTY = True
+NRGKICK_SETTINGS_DIRTY = True
+SMARTPLUG_SETTINGS_DIRTY = True
+FRONTEND_SETTINGS_DIRTY = True
+CHARGEMANAGER_SETTINGS_DIRTY = True
 
 def init():
     global databaseInitialized, sem
@@ -19,8 +49,42 @@ def init():
         initControlsTable()
         initNrgkicktable()
         initChargelogTable()
+        initSettingsTable()
         databaseInitialized == True
     sem.release()
+
+def getSetting(key):
+    return getSettings()[key]
+
+def getSettings():
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        cur.execute("SELECT * FROM settings")
+        settings = cur.fetchone()
+        data = {}
+        for idx, col in enumerate(cur.description):
+            data[col[0]] = settings[idx]
+        cur.close() 
+        return data 
+    except:
+        con.close()
+        return {}
+
+def saveSettings(data):
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        query = f"UPDATE settings SET " + ', '.join(
+        "{}=?".format(k) for k in data.keys())
+        # for debugging
+        # print(query, list(data.values())) 
+        cur.execute(query, list(data.values()))
+        con.commit()
+        cur.close()
+    except:
+        log.error(traceback.format_exc()) 
+    con.close()
 
 #
 # Sets the current number of available phases at the charger
@@ -34,7 +98,7 @@ def setPhases(value):
         con.commit()
         cur.close()
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
     con.close()
 
 #
@@ -218,7 +282,7 @@ def getChargemode():
 def setChargemode(chargemode):
 
     if (chargemode < 0 or chargemode > 3):
-        logging.error("Invaild chargemode: " + str(chargemode))
+        log.error("Invaild chargemode: " + str(chargemode))
         return
 
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -228,7 +292,7 @@ def setChargemode(chargemode):
         con.commit()
         cur.close()
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
     con.close()
 
 def setNrgkickDisconnected():
@@ -239,9 +303,13 @@ def setNrgkickDisconnected():
         con.commit()
         cur.close()
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
     con.close()
 
+#
+# Returns connected status
+# 1 = NRGKick is connected
+# 0 = NRGKick is not connected
 def isNrgkickConnected():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
     cur = con.cursor()
@@ -251,12 +319,70 @@ def isNrgkickConnected():
         status = cur.fetchone()
         cur.close()
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
     con.close()
-    if (status == 0):
-        return False
+
+    if int((status[0]) == 1):
+        return 1
     else:
-        return True
+        return 0
+
+#
+# Returns charging status
+# 1 = NRGKick is charging
+# 0 = NRGKick is not charging
+def isNrgkickCharging():
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    chargingpower = 0
+    try:
+        cur.execute("SELECT chargingpower FROM nrgkick")
+        chargingpower = cur.fetchone()
+        cur.close()
+    except:
+        log.error(traceback.format_exc()) 
+    con.close()
+    if (int(chargingpower[0]) > 0):
+        return 1
+    else:
+        return 0
+
+#
+# Returns smart plug status
+# 0 = off
+# 1 = on
+# -1 = error
+def getSmartPlugStatus():
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        cur.execute("SELECT smartPlugStatus FROM controls")
+        smartPlugStatus = cur.fetchone()
+        cur.close()
+    except:
+        con.close()
+        return -1
+    con.close()
+    return int(smartPlugStatus[0])
+
+#
+# Set the status of the smart plug
+# 0 = deactivated
+# 1 = activated
+def setSmartPlugStatus(smartPlugStatus):
+    if (smartPlugStatus < 0 or smartPlugStatus > 1):
+        log.error("Invaild smartPlugStatus: " + str(smartPlugStatus))
+        return
+
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    try:
+        cur.execute("UPDATE controls SET smartPlugStatus = " + str(smartPlugStatus))
+        con.commit()
+        cur.close()
+    except:
+        log.error(traceback.format_exc()) 
+    con.close()
 
 #
 # Returns cloudy status
@@ -283,7 +409,7 @@ def getCloudy():
 #
 def setCloudy(cloudy):
     if (cloudy < 0 or cloudy > 1):
-        logging.error("Invaild cloudy pareameter: " + str(cloudy))
+        log.error("Invaild cloudy pareameter: " + str(cloudy))
         return
 
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -293,7 +419,7 @@ def setCloudy(cloudy):
         con.commit()
         cur.close()
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
     con.close()
 
 
@@ -322,7 +448,7 @@ def initModbusTable():
         con.commit()
         cur.close()
     except:
-            logging.error(traceback.format_exc()) 
+            log.error(traceback.format_exc()) 
     con.close()
 
 def initNrgkicktable():
@@ -368,9 +494,9 @@ def initNrgkicktable():
             cur.execute(nrg_insert_sql)
             con.commit()
             cur.close()
-            logging.debug(nrg_insert_sql)
+            log.debug(nrg_insert_sql)
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
     con.close()
 
 def initChargelogTable():
@@ -387,7 +513,7 @@ def initChargelogTable():
         con.commit()
         cur.close()
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
     con.close()
 
 
@@ -403,7 +529,8 @@ def initControlsTable():
         chargemode integer NOT NULL,
         availablePowerRange integer NOT NULL,
         chargingPossible integer NOT NULL,
-        cloudy integer NOT NULL
+        cloudy integer NOT NULL,
+        smartPlugStatus integer NOT NULL
         )"""
         cur.execute(controls_sql)
         cur.close()
@@ -415,11 +542,102 @@ def initControlsTable():
         if (chargemode == None):
             # default = 0 (disabled)
             cur = con.cursor()
-            cur.execute("INSERT INTO 'controls' (chargemode,availablePowerRange,chargingPossible,cloudy) VALUES (0,0,0,0)")
+            cur.execute("INSERT INTO 'controls' (chargemode,availablePowerRange,chargingPossible,cloudy,smartPlugStatus) VALUES (0,0,0,0,0)")
             con.commit()
             cur.close()
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
+    con.close()
+
+def initSettingsTable():
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    cur = con.cursor()
+    settings = None
+    try:
+        settings_sql = """
+        CREATE TABLE IF NOT EXISTS settings (
+        seip TEXT NOT NULL,
+        seport integer NOT NULL,
+        pvpeakpower integer NOT NULL,
+        batterystartsoc integer NOT NULL,
+        batterymaxconsumption integer NOT NULL,
+        batterymaxinput integer NOT NULL,
+        chargemodeauto integer NOT NULL,
+        measurementsurl TEXT NOT NULL,
+        settingsurl TEXT NOT NULL,
+        chargerpassword TEXT NOT NULL,
+        chargingphases integer NOT NULL,
+        webport integer NOT NULL,
+        secretkey TEXT NOT NULL,
+        authenticationenabled integer NOT NULL,
+        plugip TEXT NOT NULL,
+        plugonpower integer NOT NULL,
+        plugmaxSeconds integer NOT NULL,
+        plugstartFrom integer NOT NULL,
+        plugstartFromSOC integer NOT NULL,
+        plugEnabled integer NOT NULL
+        )"""
+        cur.execute(settings_sql)
+        cur.close()
+        cur = con.cursor()
+        cur.execute("SELECT seip FROM settings")
+        settings = cur.fetchone()
+        cur.close()
+        # check if there are data otherwise init
+        if (settings == None):
+            # default = 0 (disabled)
+            cur = con.cursor()
+            insert_sql = """
+            INSERT INTO settings (
+            seip,
+            seport,
+            pvpeakpower,
+            batterystartsoc,
+            batterymaxconsumption,
+            batterymaxinput,
+            chargemodeauto,
+            measurementsurl,
+            settingsurl,
+            chargerpassword,
+            chargingphases,
+            webport,
+            secretkey,
+            authenticationenabled,
+            plugip,
+            plugonpower,
+            plugmaxSeconds,
+            plugstartFrom,
+            plugstartFromSOC,
+            plugEnabled) 
+            VALUES (
+            '192.168.xx.xx',
+            1502,
+            9400,
+            60,
+            2600,
+            4950,
+            1,
+            'http://192.168.xx.xx/api/measurements/04:91:62:xx:xx:xx',
+            'http://192.168.xx.xx/api/settings/04:91:62:xx:xx:xx',
+            '0000',
+            2,
+            5000,
+            '2ASDCX34FVAY50',
+            0,
+            '192.168.xx.xx',
+            2050,
+            7200,
+            13,
+            75,
+            0
+            )
+            """
+            cur.execute(insert_sql)
+        
+            con.commit()
+            cur.close()
+    except:
+        log.error(traceback.format_exc()) 
     con.close()
 
 class StdevFunc:

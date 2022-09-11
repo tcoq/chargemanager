@@ -4,13 +4,12 @@ import requests
 import sqlite3
 
 import pytz, os
-from datetime import datetime, timezone
+from datetime import datetime
 
 import time
 import traceback
 import chargemanagercommon
 import logging
-import configparser
 
 # --------------------------------------------------------------------------- #
 # This python script reads every 15 seconds values from NRGKICK charger and 
@@ -18,15 +17,12 @@ import configparser
 # Script was tested with 11KW version of first NRGKICK version (from production-year 2020)
 # --------------------------------------------------------------------------- #
 
-config = configparser.RawConfigParser()
-config.read('chargemanager.properties')
+log = logging.getLogger(__name__)
 
-logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename='/data/nrgkick.log', filemode='w', level=logging.INFO)
-log = logging.getLogger()
-
-NRGKICK_MEASUREMENTS_URL = config.get('Nrgkick', 'measurements.url')
-NRGKICK_SETTINGS_URL = config.get('Nrgkick', 'settings.url')
-MAX_PHASES = config.get('Car', 'charging.phases')
+NRGKICK_MEASUREMENTS_URL = 0
+NRGKICK_SETTINGS_URL = 0
+NRGKICK_PASSWORD = 0
+MAX_PHASES = 0
 
 # IMPORTANT: please check the dependencies on this value if you change it 
 READ_WRITE_INTERVAL_SEC = 15
@@ -35,6 +31,15 @@ retryCountStartCharging = 0
 retryDisconnectCount = 0
 readChargeStatusFromNRGKick = 0
 readChargeValueFromNRGKick = 0
+
+def readSettings():
+    global NRGKICK_MEASUREMENTS_URL,NRGKICK_SETTINGS_URL,NRGKICK_PASSWORD,MAX_PHASES
+    if (chargemanagercommon.NRGKICK_SETTINGS_DIRTY == True):
+        NRGKICK_MEASUREMENTS_URL = chargemanagercommon.getSetting(chargemanagercommon.MEASUREMENTURL)
+        NRGKICK_SETTINGS_URL = chargemanagercommon.getSetting(chargemanagercommon.SETTINGSURL)
+        NRGKICK_PASSWORD = chargemanagercommon.getSetting(chargemanagercommon.CHARGERPASSWORD)
+        MAX_PHASES = chargemanagercommon.getSetting(chargemanagercommon.CHARGINGPHASES)
+        chargemanagercommon.NRGKICK_SETTINGS_DIRTY = False
 
 def boolToInt(input):
     if str(input).casefold() == 'true':
@@ -52,7 +57,7 @@ def setChargingCurrent(currentValue,startCharging):
         chargemode = "false"
 
     if currentValue < 6 or currentValue > 16:
-        logging.error("Current value out of range: " + str(currentValue))
+        log.error("Current value out of range: " + str(currentValue))
         return -1
 
     json_current_value = """
@@ -67,7 +72,7 @@ def setChargingCurrent(currentValue,startCharging):
         "Max": """ + str(currentValue) + " " + """
         },
         "DeviceMetadata": {
-        "Password": """ + config.get('Nrgkick', 'charger.password')+  """
+        "Password": """ + str(NRGKICK_PASSWORD) +  """
         }
     }
     }
@@ -75,12 +80,12 @@ def setChargingCurrent(currentValue,startCharging):
     headers = {"Content-Type": "application/json"}
     try:
         resp = requests.put(url=NRGKICK_SETTINGS_URL, data=json_current_value, headers=headers)
-        logging.debug("Response start/stop charging: " + str(resp.status_code) + " " + str(json_current_value))
+        log.debug("Response start/stop charging: " + str(resp.status_code) + " " + str(json_current_value))
         http_status = resp.status_code
         resp.close()
         return http_status 
     except:
-        logging.error(traceback.format_exc()) 
+        log.error(traceback.format_exc()) 
         return -1
 #
 # Read data from NRGKICK and update database
@@ -90,11 +95,12 @@ def setChargingCurrent(currentValue,startCharging):
 def readAndUpdate():
     global readChargeStatusFromNRGKick, readChargeValueFromNRGKick, retryCountStartCharging
     chargingpower = 0
+    isConnected = 0
     try:
         try:
             resp = requests.get(url=NRGKICK_MEASUREMENTS_URL)
         except:
-            logging.debug("Could not connect to nrg kick data")
+            log.debug("Could not connect to nrg kick data")
             return -1
         general = resp.json()
         resp.status_code
@@ -102,7 +108,7 @@ def readAndUpdate():
 
         try:
             if (general['Message'] == 'No content found for this request'):
-                logging.debug("No NRG connected...")
+                log.debug("No NRG connected...")
                 return -1
         except:
             # nrgkick is not connected but bluetooth device is available
@@ -117,12 +123,12 @@ def readAndUpdate():
         phase2 = general['VoltagePhase'][1]
         phase3 = general['VoltagePhase'][2]
 
-        logging.debug(timestamp)
-        logging.debug(chargingpower)
-        logging.debug(temperature)
-        logging.debug(phase1)
-        logging.debug(phase2)
-        logging.debug(phase3)
+        log.debug(timestamp)
+        log.debug(chargingpower)
+        log.debug(temperature)
+        log.debug(phase1)
+        log.debug(phase2)
+        log.debug(phase3)
 
         totalVoltage = int(phase1) + int(phase2) + int(phase3)
         # read phases to avoid unnecessary writes
@@ -145,13 +151,11 @@ def readAndUpdate():
         try:
             resp = requests.get(url=NRGKICK_SETTINGS_URL)
         except:
-            logging.debug("Could not connect to nrg kick settings")
+            log.debug("Could not connect to nrg kick settings")
             return -1
         settings = resp.json()
         resp.status_code
         resp.close()
-
-        isConnected = 0
         
         try:
             errorcode = settings['Info']['ErrorCodes'][0]
@@ -164,15 +168,15 @@ def readAndUpdate():
             chargingcurrentmin =settings['Values']['ChargingCurrent']['Min']
             chargingcurrentmax =settings['Values']['ChargingCurrent']['Max']
         except:
-            logging.error("Problems reading data from nrgkick!")
-            logging.error(traceback.format_exc())
+            log.error("Problems reading data from nrgkick!")
+            log.error(traceback.format_exc())
             return -1
         
-        logging.debug(errorcode)
-        logging.debug(ischarging)
-        logging.debug(chargingcurrent)
-        logging.debug(chargingcurrentmin)
-        logging.debug(chargingcurrentmax)
+        log.debug(errorcode)
+        log.debug(ischarging)
+        log.debug(chargingcurrent)
+        log.debug(chargingcurrentmin)
+        log.debug(chargingcurrentmax)
 
         con = sqlite3.connect('/data/chargemanager_db.sqlite3')
         cur = con.cursor()
@@ -189,15 +193,15 @@ def readAndUpdate():
             chargingcurrentmin = """ + str(chargingcurrentmin) + "," + """
             chargingcurrentmax = """ + str(chargingcurrentmax) + """
             """
-            logging.debug(nrg_update_sql)
+            log.debug(nrg_update_sql)
             cur.execute(nrg_update_sql)
             con.commit()
             cur.close()
         except:
-            logging.error(traceback.format_exc()) 
+            log.error(traceback.format_exc()) 
         con.close() 
     except:
-        logging.error(traceback.format_exc())  
+        log.error(traceback.format_exc())  
 
     if (isConnected == 0):
         return -1   
@@ -207,16 +211,21 @@ def readAndUpdate():
 #
 #	Main, init and repeat reading
 #
-if __name__ == "__main__":
+def main():
+    global retryDisconnectCount, retryCountStartCharging, retryDisconnectCount,readChargeStatusFromNRGKick,readChargeValueFromNRGKick
+
     os.environ['TZ'] = 'Europe/Berlin'
     tz = pytz.timezone('Europe/Berlin')
     time.tzset()
 
-    chargemanagercommon.init()
+    log.info("Module " + str(__name__) + " started...")
+
     kickWasStartedNow = False 
 
     while True:
         try:
+            readSettings()
+
             chargemode = 0
             chargingPossible = 0
             availablePowerRange = 0
@@ -239,7 +248,7 @@ if __name__ == "__main__":
                     chargingPossible = data[1]
                     chargemode = data[2]
                 except:
-                    logging.error(traceback.format_exc()) 
+                    log.error(traceback.format_exc()) 
                     con.close()
                     continue # ignore the rest of code an retry until we get database back because we do not have plausible values
                 con.close()
@@ -272,20 +281,20 @@ if __name__ == "__main__":
                             setChargingCurrent(chargePowerValue,True)
                         else:
                             setChargingCurrent(chargePowerValue,False)
-                        logging.info("Try to set start charging to: " + str(chargingPossible) + " and charge power value to: " + str(chargePowerValue) + " (A) Retry-Count: " + str(x))
+                        log.info("Try to set start charging to: " + str(chargingPossible) + " and charge power value to: " + str(chargePowerValue) + " (A) Retry-Count: " + str(x))
                         
                         # wait for nrg and car sync... this could take a while
                         time.sleep(18)
                         actualPower = readAndUpdate()
-                        logging.info("Read actual charging power: " + str(actualPower) + " chargingPossible:" + str(chargingPossible))
+                        log.info("Read actual charging power: " + str(actualPower) + " chargingPossible:" + str(chargingPossible))
 
                         if ((actualPower > 0 and chargingPossible == 1) or (actualPower == 0 and chargingPossible == 0)): 
                             succesful = True
-                            logging.info("Set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + " (watt) was sucessful! Retry-Count: " + str(x) )
+                            log.info("Set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + " (watt) was sucessful! Retry-Count: " + str(x) )
                             break
                     if (succesful == False):
                         # if it was not succesful to start charging disable charging
-                        logging.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange))
+                        log.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange))
                         chargemanagercommon.setChargemode(0)
                 # write into charging log
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -299,7 +308,7 @@ if __name__ == "__main__":
                     con.commit()
                     cur.close()
                 except:
-                    logging.error(traceback.format_exc()) 
+                    log.error(traceback.format_exc()) 
                 con.close()
                 retryDisconnectCount = 0
             else:
@@ -309,7 +318,7 @@ if __name__ == "__main__":
                         chargemanagercommon.setNrgkickDisconnected()
                         chargemanagercommon.setChargemode(0)
                         kickWasStartedNow = False
-                        logging.info("Could not reach NRGKICK, set it now to disconnect status and reset chargemode to disabled!")
+                        log.info("Could not reach NRGKICK, set it now to disconnect status and reset chargemode to disabled!")
                 elif (retryCountStartCharging > 3):
                         # wait 30 seconds after try to reconnect, to reduce heavy reconnect try if it seems to be disconnected
                         time.sleep(30)
@@ -319,7 +328,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             break
         except:
-            logging.error("Some error happens, try to repeat: " + traceback.format_exc())
+            log.error("Some error happens, try to repeat: " + traceback.format_exc())
     
 
 

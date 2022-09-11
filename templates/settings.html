@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.5/css/unicons.css">
+	<link href="{{ url_for('static', filename='css/style.css') }}"" rel="stylesheet" type="text/css">
+    <title>Settings</title>
+	<script src="https://code.jquery.com/jquery-latest.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+	<script>
+	// self executing function here
+	function loadData() {
+	}
+	function validateForm() {
+		seip = document.forms["settingsForm"]["seip"].value;
+		seport = document.forms["settingsForm"]["seport"].valueAsNumber;
+		pvpeakpower = document.forms["settingsForm"]["pvpeakpower"].valueAsNumber;
+		batterystartsoc = document.forms["settingsForm"]["batterystartsoc"].valueAsNumber;
+		batterymaxconsumption = document.forms["settingsForm"]["batterymaxconsumption"].valueAsNumber;
+		batterymaxinput = document.forms["settingsForm"]["batterymaxinput"].valueAsNumber;
+		chargemodeauto = document.forms["settingsForm"]["chargemodeauto"].valueAsNumber;
+		measurementsurl = document.forms["settingsForm"]["measurementsurl"].value;
+		settingsurl = document.forms["settingsForm"]["settingsurl"].value;
+		chargerpassword = document.forms["settingsForm"]["chargerpassword"].value;
+		chargingphases = document.forms["settingsForm"]["chargingphases"].valueAsNumber;
+		webport = document.forms["settingsForm"]["webport"].valueAsNumber;
+		secretkey = document.forms["settingsForm"]["secretkey"].value;
+		authenticationenabled = document.forms["settingsForm"]["authenticationenabled"].valueAsNumber;
+		plugip = document.forms["settingsForm"]["plugip"].value;
+		plugonpower = document.forms["settingsForm"]["plugonpower"].valueAsNumber;
+		plugmaxSeconds = document.forms["settingsForm"]["plugmaxSeconds"].valueAsNumber;
+		plugstartFrom = document.forms["settingsForm"]["plugstartFrom"].valueAsNumber;
+		plugenabled = document.forms["settingsForm"]["plugEnabled"].valueAsNumber;
+		plugstartfromsoc = document.forms["settingsForm"]["plugstartFromSOC"].valueAsNumber;
+		
+		validationError = false
+		if (validateIP(seip) == false) {
+			document.getElementById('seip').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(seport) == false) {
+			document.getElementById('seport').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(pvpeakpower) == false) {
+			document.getElementById('pvpeakpower').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(batterystartsoc) == false || (batterystartsoc < 0 || batterystartsoc > 100)) {
+			document.getElementById('batterystartsoc').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(batterymaxconsumption) == false) {
+			document.getElementById('batterymaxconsumption').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(batterymaxinput) == false) {
+			document.getElementById('batterymaxinput').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(chargemodeauto) == false || (chargemodeauto < 0 || chargemodeauto > 1)) {
+			document.getElementById('chargemodeauto').style.borderColor = "red";
+			validationError = true
+		}
+		if (isValidUrl(measurementsurl) == false) {
+			document.getElementById('measurementsurl').style.borderColor = "red";
+			validationError = true
+		}
+		if (isValidUrl(settingsurl) == false) {
+			document.getElementById('settingsurl').style.borderColor = "red";
+			validationError = true
+		}
+		if (chargerpassword == "") {
+			document.getElementById('chargerpassword').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(chargingphases) == false || (chargingphases < 1 || chargingphases > 3)) {
+			document.getElementById('chargingphases').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(webport) == false) {
+			document.getElementById('webport').style.borderColor = "red";
+			validationError = true
+		}
+		if (secretkey == "") {
+			document.getElementById('secretkey').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(authenticationenabled) == false || (authenticationenabled < 0 || authenticationenabled > 1)) {
+			document.getElementById('authenticationenabled').style.borderColor = "red";
+			validationError = true
+		}
+		if (validateIP(plugip) == false) {
+			document.getElementById('plugip').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(plugonpower) == false || (plugonpower > 3900 || plugonpower < 500)) {
+			document.getElementById('plugonpower').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(plugmaxSeconds) == false || (plugmaxSeconds < 60 || plugmaxSeconds > 43200)) {
+			document.getElementById('plugmaxSeconds').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(plugstartFrom) == false || (plugstartFrom < 0 || plugstartFrom > 24)) {
+			document.getElementById('plugstartFrom').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(plugstartfromsoc) == false || (plugstartfromsoc < 0 || plugstartfromsoc > 100)) {
+			document.getElementById('plugstartfromsoc').style.borderColor = "red";
+			validationError = true
+		}
+		if (Number.isInteger(plugenabled) == false || (plugenabled < 0 || plugenabled > 1)) {
+			document.getElementById('plugenabled').style.borderColor = "red";
+			validationError = true
+		}
+		if (validationError == true) {
+			return false
+		}
+		
+		
+		return true
+	}
+	function validateIP(ipaddress) {
+		if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ipaddress)) {  
+		return (true)  
+		}   
+		return (false)  
+	}  
+	function isValidUrl(string) {
+		let url;
+  
+		try {
+		url = new URL(string);
+		} catch (_) {
+		return false;  
+		}
+
+		return url.protocol === "http:" || url.protocol === "https:";
+	}
+	</script>
+</head>
+<body onload="loadData()">
+<div class="content">
+	<center>
+	<h2 class="card" style="color:var(--grey)"><div>SETTINGS <a href="/?secret={{secret}}" class="uil uil-home"></a></div></h2>
+	<h3 style="color:var(--green)">{{notice}}</h3>
+	<form name="settingsForm" method="POST">
+		<table width=90%>
+		  <tr>
+			<td colspan="2"><center><h3 class="card" style="color:#f0f0f0">PV TRACKING</h3></center></td>
+		  </tr>
+		  <tr>
+			<td>Auto on [0|1]</td>
+			<td><input type="number" id="chargemodeauto" name="chargemodeauto" value="{{settings['chargemodeauto']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>On at SOC [%]</td>
+			<td><input type="number" id="batterystartsoc" name="batterystartsoc" value="{{settings['batterystartsoc']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2"><br><center><h3 class="card" style="color:#dbdbdb">HOUSE BATTERY / PV TRACKING</h3></center></td>
+		  </tr>
+		  <tr>
+			<td width="355px">Max consumption [W]</td>
+			<td><input type="number" id="batterymaxconsumption" name="batterymaxconsumption" value="{{settings['batterymaxconsumption']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>Max charging [W]</td>
+			<td><input type="number" id="batterymaxinput" name="batterymaxinput" value="{{settings['batterymaxinput']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2"><br><center><h3 class="card" style="color:#FF7F24">CAR</h3></center></td>
+		  </tr>
+		  <tr>
+			<td>Max phases [n]</td>
+			<td><input type="number" id="chargingphases" name="chargingphases" value="{{settings['chargingphases']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2"><br><center><h3 class="card" style="color:#40E0D0">TP-LINK SMART PLUG</h3></center></td>
+		  </tr>
+		  <tr>
+			<td>IP</td>
+			<td><input type="text" id="plugip" name="plugip" value="{{settings['plugip']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>Enabled [0|1]</td>
+			<td><input type="number" id="plugEnabled" name="plugEnabled" value="{{settings['plugEnabled']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>On at [W]</td>
+			<td><input type="number" id="plugonpower" name="plugonpower" value="{{settings['plugonpower']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>On at SOC [%]</td>
+			<td><input type="number" id="plugstartFromSOC" name="plugstartFromSOC" value="{{settings['plugstartFromSOC']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>Power on duration [s]</td>
+			<td><input type="number" id="plugmaxSeconds" name="plugmaxSeconds" value="{{settings['plugmaxSeconds']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>Start hour [h]</td>
+			<td><input type="number" id="plugstartFrom" name="plugstartFrom" value="{{settings['plugstartFrom']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2"><br><center><h3 class="card" style="color:red">SOLAREDGE</h3></center></td>
+		  </tr>
+		  <tr>
+			<td>IP</td>
+			<td><input type="text" id="seip" name="seip" value="{{settings['seip']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>Modbus port [n]</td>
+			<td><input type="number" id="seport" name="seport" value="{{settings['seport']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>PV peak power [W]</td>
+			<td><input type="number" id="pvpeakpower" name="pvpeakpower" value="{{settings['pvpeakpower']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2"><br><center><h3 class="card" style="color:var(--blue)">NRGKICK</h3></center></td>
+		  </tr>
+		  <tr>
+			<td>Measurements URL</td>
+			<td><input type="text" id="measurementsurl" name="measurementsurl" value="{{settings['measurementsurl']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>Settings URL</td>
+			<td><input type="text" id="settingsurl" name="settingsurl" value="{{settings['settingsurl']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>Password</td>
+			<td><input type="text" id="chargerpassword" name="chargerpassword" value="{{settings['chargerpassword']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td colspan="2"><br><center><h3 class="card" style="color:#f0f0f0">WEB</h3></center></td>
+		  </tr>
+		  <tr>
+			<td>UI port</td>
+			<td><input type="number" id="webport" name="webport" value="{{settings['webport']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>Secret</td>
+			<td><input type="text" id="secretkey" name="secretkey" value="{{settings['secretkey']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>Secret enabled [0|1]</td>
+			<td><input type="number" id="authenticationenabled" name="authenticationenabled" value="{{settings['authenticationenabled']}}" style="width: 100%"></td>
+		  </tr>
+		</table>
+		<br>
+		<input type="submit" onclick="return validateForm()" value="Save settings">
+	</form>
+	<br><br>
+	<center><h3 class="card" style="color:#f0f0f0">LOG</h3></center>
+	<textarea rows="40" style="width:90%;">{{logfile}}</textarea>
+	</center>
+	<br><br>
+</div>
+</body>
+</html>

@@ -50,7 +50,7 @@
 		data = new google.visualization.DataTable();
 		data.addColumn('datetime', 'Date');
 		data.addColumn('number', 'Production');
-		data.addColumn('number', 'Free');
+		data.addColumn('number', 'Consumption');
 		data.addColumn('number', 'Charging');
 
 		$.each(JSON.parse({{tempdata|tojson|safe}}), function(index, row) {
@@ -110,6 +110,12 @@
 			document.getElementById('production').innerHTML += "<i class='uil uil-cloud'></i>";
 		}
 		
+		var smartPlugStatus = {{controls[4]}}
+		
+		if (smartPlugStatus == 1) {
+			document.getElementById('consumption').innerHTML += "<i class='uil uil-plug'></i>";
+		}
+		
 		if (nrgKickConnectedStatus == 1) {
 			document.getElementById("trackedcharginglabel").style.display = "block";
 			document.getElementById("slowcharginglabel").style.display = "block";
@@ -167,7 +173,7 @@
 <body onload="loadText()">
 <div class="content">
 	<center>
-	<h2 class="card" style="color:var(--grey)">CHARGEMANAGER</h2>
+	<h2 class="card" style="color:var(--grey)"><div>CHARGEMANAGER <a href="/settings?secret={{secret}}" class="uil uil-setting"></a></div></h2>
 	<div id="chart_div"></div>
 	<div style="padding:20px">CHARGING STRATEGY:</div>
 	<form action="/chargemode" method="POST" class="form-inline" id="chargemodeform">
@@ -186,7 +192,7 @@
 	<br>
 	<h2 class="card" style="color:red">SOLAREDGE</h2>
     <div id="production">Production: {{row[1]}} Watt</div>
-	<div>Consumption: {{row[2]}} Watt</div>
+	<div id="consumption">Consumption: {{row[2]}} Watt</div>
 	<div>Grid: {{row[3]}} Watt</div>
 	<div>Battery: {{row[4]}} Watt</div>
     <div>Battery SOC / SOH: {{row[6]}} % / {{row[7]}} %</div>
