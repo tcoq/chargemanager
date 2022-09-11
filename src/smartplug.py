@@ -19,6 +19,7 @@ PLUG_ON_POWER = 0
 PLUG_START_FROM_HOUR = 0
 PLUG_START_FROM_SOC = 0
 PLUG_PORT = 9999
+OFFSET = 171
 
 def readSettings():
     global PLUG_IP,PLUG_MAX_SECONDS,PLUG_ON_POWER,PLUG_START_FROM_HOUR, PLUG_START_FROM_SOC, PLUG_ENABLED
@@ -31,25 +32,6 @@ def readSettings():
         PLUG_ENABLED = int(chargemanagercommon.getSetting(chargemanagercommon.PLUGENABLED))
         chargemanagercommon.SMARTPLUG_SETTINGS_DIRTY == False
 
-
-def encrypt(string):
-    key = 171
-    result = pack('>I', len(string))
-    for i in string:
-        a = key ^ ord(i)
-        key = a
-        result += bytes([a])
-    return result
-
-
-def decrypt(string):
-    key = 171
-    result = ""
-    for i in string:
-        a = key ^ i
-        key = i
-        result += chr(a)
-    return result
 
 def sendCommand(command):
     try:
@@ -94,6 +76,23 @@ def setPlugOn():
         if (status != False):
             chargemanagercommon.setSmartPlugStatus(1)
 
+def encrypt(string):
+    tmp = OFFSET
+    res = pack('>I', len(string))
+    for i in string:
+        a = tmp ^ ord(i)
+        tmp = a
+        res += bytes([a])
+    return res
+
+def decrypt(string):
+    tmp = OFFSET
+    res = ""
+    for i in string:
+        a = tmp ^ i
+        tmp = i
+        result += chr(a)
+    return res
 #
 #	Main, init and repeat reading
 #
