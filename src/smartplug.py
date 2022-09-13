@@ -38,11 +38,11 @@ def sendCommand(command):
         sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock_tcp.settimeout(10)
         sock_tcp.connect((PLUG_IP, PLUG_PORT))
-        sock_tcp.send(encrypt(command))
+        sock_tcp.send(enc(command))
         data = sock_tcp.recv(2048)
         sock_tcp.close()
 
-        decrypted = decrypt(data[4:])
+        decrypted = dec(data[4:])
         return json.loads(decrypted)
     except:
         # log.warn("Could not sendCommand... maybe device is not available...") 
@@ -76,7 +76,7 @@ def setPlugOn():
         if (status != False):
             chargemanagercommon.setSmartPlugStatus(1)
 
-def encrypt(string):
+def enc(string):
     tmp = OFFSET
     res = pack('>I', len(string))
     for i in string:
@@ -85,7 +85,7 @@ def encrypt(string):
         res += bytes([a])
     return res
 
-def decrypt(string):
+def dec(string):
     tmp = OFFSET
     res = ""
     for i in string:
@@ -176,6 +176,8 @@ def main():
                                 log.info("SmartPlug switched off because max seconds limit ( " + str(PLUG_MAX_SECONDS) + " ) reached!")
                             else:
                                 log.info("SmartPlug switched off because PV power is gone! (" + str(int(availablePowerRange + cloudyOffset)) + " Watt)")
+                                # sleep double time to avoid turn on / off shortly after each other until it is cloudy
+                                time.sleep(SLEEP)
                     lastPowerState = powerOn
                 except:
                     log.error(traceback.format_exc()) 
