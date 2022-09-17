@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 #
+# --------------------------------------------------------------------------- #
+# Main module to start sub-modules
+# --------------------------------------------------------------------------- #
 import logging
 import solaredge
 import nrgkick

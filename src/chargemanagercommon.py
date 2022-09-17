@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 #
+# --------------------------------------------------------------------------- #
+# Chargemanagercommon is a module for shared resource access like
+# database access or project initialization
+# --------------------------------------------------------------------------- #
 from pickle import FALSE
 from telnetlib import AUTHENTICATION
 import threading
@@ -27,17 +31,25 @@ WEBPORT = 'webport'
 SECRETKEY = 'secretkey' 
 AUTHENTICATIONENABLED = 'authenticationenabled' 
 PLUGIP = 'plugip' 
-PLUGONPOWER = 'plugonpower' 
-PLUGMAXSECONDS = 'plugmaxSeconds' 
-PLUGSTARTFROM ='plugstartFrom'
+PLUGONPOWER = 'plugonpower'  
+FIRSTPLUGSTARTFROM ='firstPlugstartFrom'
+FIRSTPLUGSTARTTO ='firstPlugstartTo'
+SECONDPLUGSTARTFROM ='secondPlugstartFrom'
+SECONDPLUGSTARTTO ='secondPlugstartTo'
 PLUGSTARTFROMSOC ='plugstartFromSOC'
 PLUGENABLED ='plugEnabled'
+ALLOWPLUGUSEHOUSEBATTERY ='allowPlugUseBattery'
 
 SOLAREDGE_SETTINGS_DIRTY = True
 NRGKICK_SETTINGS_DIRTY = True
 SMARTPLUG_SETTINGS_DIRTY = True
 FRONTEND_SETTINGS_DIRTY = True
 CHARGEMANAGER_SETTINGS_DIRTY = True
+
+TRACKED_MODE = 3
+FAST_MODE = 1
+SLOW_MODE = 2
+DISABLED_MODE = 0
 
 def init():
     global databaseInitialized, sem
@@ -329,7 +341,7 @@ def isNrgkickConnected():
 
 #
 # Returns charging status
-# 1 = NRGKick is charging
+# 1> = Current NRGKick power in watt
 # 0 = NRGKick is not charging
 def isNrgkickCharging():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -343,7 +355,7 @@ def isNrgkickCharging():
         log.error(traceback.format_exc()) 
     con.close()
     if (int(chargingpower[0]) > 0):
-        return 1
+        return int(chargingpower[0])
     else:
         return 0
 
@@ -572,10 +584,13 @@ def initSettingsTable():
         authenticationenabled integer NOT NULL,
         plugip TEXT NOT NULL,
         plugonpower integer NOT NULL,
-        plugmaxSeconds integer NOT NULL,
-        plugstartFrom integer NOT NULL,
+        firstPlugstartFrom TEXT NOT NULL,
+        firstPlugstartTo TEXT NOT NULL,
+        secondPlugstartFrom TEXT NOT NULL,
+        secondPlugstartTo TEXT NOT NULL,
         plugstartFromSOC integer NOT NULL,
-        plugEnabled integer NOT NULL
+        plugEnabled integer NOT NULL,
+        allowPlugUseBattery integer NOT NULL
         )"""
         cur.execute(settings_sql)
         cur.close()
@@ -605,10 +620,13 @@ def initSettingsTable():
             authenticationenabled,
             plugip,
             plugonpower,
-            plugmaxSeconds,
-            plugstartFrom,
+            firstPlugstartFrom,
+            firstPlugstartTo,
+            secondPlugstartFrom,
+            secondPlugstartTo,
             plugstartFromSOC,
-            plugEnabled) 
+            plugEnabled,
+            allowPlugUseBattery) 
             VALUES (
             '192.168.xx.xx',
             1502,
@@ -626,10 +644,13 @@ def initSettingsTable():
             0,
             '192.168.xx.xx',
             2050,
-            7200,
-            13,
-            75,
-            0
+            '11:00',
+            '11:00',
+            '14:00',
+            '16:00',
+            55,
+            0,
+            1
             )
             """
             cur.execute(insert_sql)

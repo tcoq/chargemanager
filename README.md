@@ -68,12 +68,16 @@ If your NRGKICK has deactived phases (e.g. 1 of 3) the lower value will be used 
 IP of HS100 or HS110 smart plug.	
 ###### **TP-LINK SMART PLUG / Enabled [0|1]**	
 Turn it on (1) or deactivate (0).
+###### **TP-LINK SMART PLUG / Allow battery [0|1]**	
+Turn it on (1) if you want to allow house battery support if pv power is shortly gone in cloudy conditions. Battery power is only used if SOC > 94% and 55% of given "On at [W]" free pv power is left.
 ###### **TP-LINK SMART PLUG / On at [W]**	
 Available "free" PV power threshold on which smart plug should switch on [Watt]
 ###### **TP-LINK SMART PLUG / On at SOC [%]**	
 Min SOC of house-battery when swtiching smart plug on. 
-###### **TP-LINK SMART PLUG / Power on duration [s]**
-Amount of seconds in total by day which smart plug should stay on.	
+###### **TP-LINK SMART PLUG / 1st on [hh:mm]**
+First interval where plug should turned on.
+###### **TP-LINK SMART PLUG / 2nd on [hh:mm]**
+Second interval where plug should turned on.	
 ###### **TP-LINK SMART PLUG / Start hour [h]**
 Earliest full hour from which smart plug should be turned on. (24h format, e.g. 13,14 or 15)
 

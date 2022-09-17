@@ -1,5 +1,8 @@
 # flask_web/frontend.py
-
+#
+# --------------------------------------------------------------------------- #
+# Module for building and controlling the web frontend
+# --------------------------------------------------------------------------- #
 from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
 import traceback
@@ -177,11 +180,14 @@ def saveForm():
         data[chargemanagercommon.AUTHENTICATIONENABLED]  = request.form[chargemanagercommon.AUTHENTICATIONENABLED]
         data[chargemanagercommon.PLUGIP]  = request.form[chargemanagercommon.PLUGIP]
         data[chargemanagercommon.PLUGONPOWER ]  = request.form[chargemanagercommon.PLUGONPOWER ]
-        data[chargemanagercommon.PLUGMAXSECONDS]  = request.form[chargemanagercommon.PLUGMAXSECONDS]
-        data[chargemanagercommon.PLUGSTARTFROM]  = request.form[chargemanagercommon.PLUGSTARTFROM]
+        data[chargemanagercommon.FIRSTPLUGSTARTFROM]  = request.form[chargemanagercommon.FIRSTPLUGSTARTFROM]
+        data[chargemanagercommon.FIRSTPLUGSTARTTO]  = request.form[chargemanagercommon.FIRSTPLUGSTARTTO]
+        data[chargemanagercommon.SECONDPLUGSTARTFROM]  = request.form[chargemanagercommon.SECONDPLUGSTARTFROM]
+        data[chargemanagercommon.SECONDPLUGSTARTTO]  = request.form[chargemanagercommon.SECONDPLUGSTARTTO]
         data[chargemanagercommon.PLUGSTARTFROMSOC]  = request.form[chargemanagercommon.PLUGSTARTFROMSOC]
         data[chargemanagercommon.PLUGENABLED]  = request.form[chargemanagercommon.PLUGENABLED]
-        
+        data[chargemanagercommon.ALLOWPLUGUSEHOUSEBATTERY]  = request.form[chargemanagercommon.ALLOWPLUGUSEHOUSEBATTERY]
+
         chargemanagercommon.saveSettings(data)
 
         # force to reload setting in all modules

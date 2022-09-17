@@ -30,10 +30,13 @@
 		authenticationenabled = document.forms["settingsForm"]["authenticationenabled"].valueAsNumber;
 		plugip = document.forms["settingsForm"]["plugip"].value;
 		plugonpower = document.forms["settingsForm"]["plugonpower"].valueAsNumber;
-		plugmaxSeconds = document.forms["settingsForm"]["plugmaxSeconds"].valueAsNumber;
-		plugstartFrom = document.forms["settingsForm"]["plugstartFrom"].valueAsNumber;
+		firstPlugstartFrom = document.forms["settingsForm"]["firstPlugstartFrom"].value;
+		firstPlugstartTo = document.forms["settingsForm"]["firstPlugstartTo"].value;
+		secondPlugstartFrom = document.forms["settingsForm"]["secondPlugstartFrom"].value;
+		secondPlugstartTo = document.forms["settingsForm"]["secondPlugstartTo"].value;
 		plugenabled = document.forms["settingsForm"]["plugEnabled"].valueAsNumber;
 		plugstartfromsoc = document.forms["settingsForm"]["plugstartFromSOC"].valueAsNumber;
+		allowPlugUseBattery = document.forms["settingsForm"]["allowPlugUseBattery"].valueAsNumber;
 		
 		validationError = false
 		if (validateIP(seip) == false) {
@@ -100,12 +103,20 @@
 			document.getElementById('plugonpower').style.borderColor = "red";
 			validationError = true
 		}
-		if (Number.isInteger(plugmaxSeconds) == false || (plugmaxSeconds < 60 || plugmaxSeconds > 43200)) {
-			document.getElementById('plugmaxSeconds').style.borderColor = "red";
+		if (validateTime(firstPlugstartFrom) == false) {
+			document.getElementById('firstPlugstartFrom').style.borderColor = "red";
 			validationError = true
 		}
-		if (Number.isInteger(plugstartFrom) == false || (plugstartFrom < 0 || plugstartFrom > 24)) {
-			document.getElementById('plugstartFrom').style.borderColor = "red";
+		if (validateTime(firstPlugstartTo) == false) {
+			document.getElementById('firstPlugstartTo').style.borderColor = "red";
+			validationError = true
+		}
+		if (validateTime(secondPlugstartFrom) == false) {
+			document.getElementById('secondPlugstartFrom').style.borderColor = "red";
+			validationError = true
+		}
+		if (validateTime(secondPlugstartTo) == false) {
+			document.getElementById('secondPlugstartTo').style.borderColor = "red";
 			validationError = true
 		}
 		if (Number.isInteger(plugstartfromsoc) == false || (plugstartfromsoc < 0 || plugstartfromsoc > 100)) {
@@ -116,12 +127,19 @@
 			document.getElementById('plugenabled').style.borderColor = "red";
 			validationError = true
 		}
+		if (Number.isInteger(allowPlugUseBattery) == false || (allowPlugUseBattery < 0 || allowPlugUseBattery > 1)) {
+			document.getElementById('allowPlugUseBattery').style.borderColor = "red";
+			validationError = true
+		}
 		if (validationError == true) {
 			return false
 		}
-		
-		
 		return true
+	}
+	
+	function validateTime(text) {
+		var isValid = /^([0-1]?[0-9]|2[0-4]):([0-5][0-9])(:[0-5][0-9])?$/.test(text);
+		return isValid;
 	}
 	function validateIP(ipaddress) {
 		if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ipaddress)) {  
@@ -198,12 +216,16 @@
 			<td><input type="number" id="plugstartFromSOC" name="plugstartFromSOC" value="{{settings['plugstartFromSOC']}}" style="width: 100%"></td>
 		  </tr>
 		  <tr>
-			<td>Power on duration [s]</td>
-			<td><input type="number" id="plugmaxSeconds" name="plugmaxSeconds" value="{{settings['plugmaxSeconds']}}" style="width: 100%"></td>
+			<td>Allow battery [0|1]</td>
+			<td><input type="number" id="allowPlugUseBattery" name="allowPlugUseBattery" value="{{settings['allowPlugUseBattery']}}" style="width: 100%"></td>
 		  </tr>
 		  <tr>
-			<td>Start hour [h]</td>
-			<td><input type="number" id="plugstartFrom" name="plugstartFrom" value="{{settings['plugstartFrom']}}" style="width: 100%"></td>
+			<td>1st on [hh:mm]</td>
+			<td><input type="text" id="firstPlugstartFrom" name="firstPlugstartFrom" value="{{settings['firstPlugstartFrom']}}" style="width: 30%"><input type="text" id="firstPlugstartTo" name="firstPlugstartTo" value="{{settings['firstPlugstartTo']}}" style="width: 30%"></td>
+		  </tr>
+		  <tr>
+			<td>2nd on [hh:mm]</td>
+			<td><input type="text" id="secondPlugstartFrom" name="secondPlugstartFrom" value="{{settings['secondPlugstartFrom']}}" style="width: 30%"><input type="text" id="secondPlugstartTo" name="secondPlugstartTo" value="{{settings['secondPlugstartTo']}}" style="width: 30%"></td>
 		  </tr>
 		  <tr>
 			<td colspan="2"><br><center><h3 class="card" style="color:red">SOLAREDGE</h3></center></td>
@@ -244,7 +266,7 @@
 		  </tr>
 		  <tr>
 			<td>Secret</td>
-			<td><input type="text" id="secretkey" name="secretkey" value="{{settings['secretkey']}}" style="width: 100%"></td>
+			<td><input type="text" id="secretkey" name="secretkey" value="{{settings['secretkey']}}" style="width: 50%"></td>
 		  </tr>
 		  <tr>
 			<td>Secret enabled [0|1]</td>

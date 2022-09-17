@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 #
+# --------------------------------------------------------------------------- #
+# Chargemanager is responsible for calculating the right charge strategy based 
+# PV values
+# --------------------------------------------------------------------------- #
 import sqlite3 
 
 import os
@@ -10,11 +14,6 @@ import traceback
 import chargemanagercommon
 import logging
 from datetime import datetime
-
-# --------------------------------------------------------------------------- #
-# Chargemanager is responsible for calculating the right charge strategy based 
-# PV values
-# --------------------------------------------------------------------------- #
 
 log = logging.getLogger(__name__)
 
@@ -228,10 +227,10 @@ def calcEfficientChargingStrategy():
         if (newAvailablePowerRange < minCharge):
             log.info("Battery protection activated, stop charging now! Battery-protection-counter: " + str(batteryProtectionCounter) + " currentBatteryPower: " + str(currentBatteryPower))
             if (thisDayTime.hour < 16 and thisDayTime.hour > 8):
-                chargemanagercommon.setChargemode(2) # slow
+                chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE) # slow
                 log.info("Battery protection switch to slow mode! Hour: " + str(thisDayTime.hour))
             else:
-                chargemanagercommon.setChargemode(0) # disabled
+                chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE) # disabled
                 log.info("Battery protection switch to disabled mode! Hour: " + str(thisDayTime.hour))
             chargingPossible = 0
     else:
@@ -239,7 +238,7 @@ def calcEfficientChargingStrategy():
 
     # if tracked mode is already on toggle to tracked mode: avoid to reactivate if a manual mode switch by user
     # avoid switching to tracked mode if it is cloudy
-    if (chargemanagercommon.getChargemode() == 3 or badTrackedChargingConditions == 1):
+    if (chargemanagercommon.getChargemode() == chargemanagercommon.TRACKED_MODE or badTrackedChargingConditions == 1):
         toggleToTrackedMode = False
 
     # GUARANTEE stable power for at least 5 minutes and also avoid to start / stop charging to much
@@ -255,11 +254,11 @@ def calcEfficientChargingStrategy():
             chargingPossible == 1 and 
             newAvailablePowerRange >= (minCharge + 400) and 
             int(soc) > HOUSE_BAT_SOCO_START and
-            chargemanagercommon.getChargemode() != 0 and # disabled
-            chargemanagercommon.getChargemode() != 1): # fast
-            if (chargemanagercommon.getChargemode() == 2):
+            chargemanagercommon.getChargemode() != chargemanagercommon.DISABLED_MODE and 
+            chargemanagercommon.getChargemode() != chargemanagercommon.FAST_MODE): 
+            if (chargemanagercommon.getChargemode() == chargemanagercommon.SLOW_MODE):
                 # set to TRACKED mode
-                chargemanagercommon.setChargemode(3)
+                chargemanagercommon.setChargemode(chargemanagercommon.TRACKED_MODE)
                 # toggle to avoid multi toggle in a charging-session / reset toggle is done below if charinging is stopped
                 toggleToTrackedMode = False
                 log.info("Auto switch to tracked mode! currentBatteryPower: " + str(currentBatteryPower) + " soc: " + str(soc) + " newAvailablePowerRange: " + str(newAvailablePowerRange))
@@ -269,9 +268,9 @@ def calcEfficientChargingStrategy():
         if (chargingPossible == 0 and 
             thisDayTime.hour < 16 and 
             thisDayTime.hour > 8 and 
-            chargemanagercommon.getChargemode() == 3):
+            chargemanagercommon.getChargemode() == chargemanagercommon.TRACKED_MODE):
             
-            chargemanagercommon.setChargemode(2) # slow
+            chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE)
             # allow to switch back to tracked mode when conditions are getting better...
             toggleToTrackedMode = True
             log.info("Auto switch from tracked to slow mode! Hour: " + str(thisDayTime.hour))
@@ -280,7 +279,7 @@ def calcEfficientChargingStrategy():
         try:
             # reset toggle if there is no free power anymore and charging was disabled to avoid jumping back from manual mode to tracked
             cm = chargemanagercommon.getChargemode()
-            if (chargingPossible == 0 and cm == 0): # 0 DISABLED     
+            if (chargingPossible == 0 and cm == chargemanagercommon.DISABLED_MODE): # 0 DISABLED     
                 toggleToTrackedMode = True
             cur = con.cursor()
             cur.execute("UPDATE controls set availablePowerRange = " + str(availablePowerRange) + ", chargingPossible=" + str(chargingPossible))
@@ -289,8 +288,7 @@ def calcEfficientChargingStrategy():
         except:
             log.error(traceback.format_exc()) 
         con.close()
-        
-        log.info("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible) + " phases: " + str(phases) + " cloudy: " + str(cloudyConditions) + " minCharge: " + str(minCharge) + " soc:" + str(soc))
+        log.debug("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible) + " phases: " + str(phases) + " cloudy: " + str(cloudyConditions) + " minCharge: " + str(minCharge) + " soc:" + str(soc))
 
     # check if power ranges changes
     if (availablePowerRange != newAvailablePowerRange):
@@ -333,7 +331,7 @@ def main():
             time.sleep(READ_INTERVAL_SEC)
             log.debug("sleeped " + str(READ_INTERVAL_SEC) + " seconds")
             try:
-                if (chargemanagercommon.isNrgkickConnected() == 1 and chargemanagercommon.getChargemode() != 0):
+                if (chargemanagercommon.isNrgkickConnected() == 1 and chargemanagercommon.getChargemode() != chargemanagercommon.DISABLED_MODE):
                     calcEfficientChargingStrategy()
 
                 dt = datetime.now()

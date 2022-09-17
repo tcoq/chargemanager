@@ -1,5 +1,11 @@
 #!/usr/bin/python3
 #
+# --------------------------------------------------------------------------- #
+# Module reads every 15 seconds values from NRGKICK charger and 
+# writes them to SQLLite database and activates/deactivates charging on given charging strategy.
+# Script was tested with 11KW version of first NRGKICK version (from production-year 2020)
+# --------------------------------------------------------------------------- #
+
 import requests
 import sqlite3
 
@@ -10,12 +16,6 @@ import time
 import traceback
 import chargemanagercommon
 import logging
-
-# --------------------------------------------------------------------------- #
-# This python script reads every 15 seconds values from NRGKICK charger and 
-# writes them to SQLLite database and activates/deactivates charging on given charging strategy.
-# Script was tested with 11KW version of first NRGKICK version (from production-year 2020)
-# --------------------------------------------------------------------------- #
 
 log = logging.getLogger(__name__)
 
@@ -226,7 +226,7 @@ def main():
         try:
             readSettings()
 
-            chargemode = 0
+            chargemode = chargemanagercommon.DISABLED_MODE
             chargingPossible = 0
             availablePowerRange = 0
             
@@ -235,7 +235,7 @@ def main():
             if (actualPower >= 0):
                 # if kick was enabled currently, there is a high propability user want to start charging (set it to slow)
                 if (kickWasStartedNow == False):
-                    chargemanagercommon.setChargemode(2)
+                    chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE)
                     kickWasStartedNow = True
 
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -256,15 +256,15 @@ def main():
                 # calc charge power / min = 6 (default)
                 chargePowerValue = 6
 
-                if (chargemode == 0):
+                if (chargemode == chargemanagercommon.DISABLED_MODE):
                     # disabled mode
                     chargePowerValue = 6
                     chargingPossible = 0
-                elif (chargemode == 1):
+                elif (chargemode == chargemanagercommon.FAST_MODE):
                     # fast mode
                     chargePowerValue = 15
                     chargingPossible = 1
-                elif (chargemode == 2):
+                elif (chargemode == chargemanagercommon.SLOW_MODE):
                     # slow mode
                     chargePowerValue = 6
                     chargingPossible = 1
@@ -281,12 +281,12 @@ def main():
                             setChargingCurrent(chargePowerValue,True)
                         else:
                             setChargingCurrent(chargePowerValue,False)
-                        log.info("Try to set start charging to: " + str(chargingPossible) + " and charge power value to: " + str(chargePowerValue) + " (A) Retry-Count: " + str(x))
+                        log.debug("Try to set start charging to: " + str(chargingPossible) + " and charge power value to: " + str(chargePowerValue) + " (A) Retry-Count: " + str(x))
                         
                         # wait for nrg and car sync... this could take a while
                         time.sleep(18)
                         actualPower = readAndUpdate()
-                        log.info("Read actual charging power: " + str(actualPower) + " chargingPossible:" + str(chargingPossible))
+                        log.debug("Read actual charging power: " + str(actualPower) + " chargingPossible:" + str(chargingPossible))
 
                         if ((actualPower > 0 and chargingPossible == 1) or (actualPower == 0 and chargingPossible == 0)): 
                             succesful = True
@@ -295,7 +295,7 @@ def main():
                     if (succesful == False):
                         # if it was not succesful to start charging disable charging
                         log.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange))
-                        chargemanagercommon.setChargemode(0)
+                        chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
                 # write into charging log
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
                 cur = con.cursor()
@@ -316,7 +316,7 @@ def main():
                 retryDisconnectCount += 1
                 if (retryDisconnectCount == 3):
                         chargemanagercommon.setNrgkickDisconnected()
-                        chargemanagercommon.setChargemode(0)
+                        chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
                         kickWasStartedNow = False
                         log.info("Could not reach NRGKICK, set it now to disconnect status and reset chargemode to disabled!")
                 elif (retryCountStartCharging > 3):

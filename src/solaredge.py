@@ -1,5 +1,10 @@
 #!/usr/bin/python3
 #
+# --------------------------------------------------------------------------- #
+# Moduel reads every 15 seconds values from Solaredge inverter and writes them to SQLLite database
+# Module was tested with Solaredge Storedge SE10K-RWS and BYD LVS 8.0
+# IMPORTANT: other Solaredge inversters might have different modbus register adresses!
+# --------------------------------------------------------------------------- #
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.payload import BinaryPayloadBuilder
@@ -13,12 +18,6 @@ from datetime import datetime
 import time
 import traceback
 import chargemanagercommon
-
-# --------------------------------------------------------------------------- #
-# This python script reads every 30 seconds values from Solaredge inverter and writes them to SQLLite database
-# Script was tested with Solaredge Storedge SE10K-RWS and BYD LVS 8.0
-# IMPORTANT: other Solaredge inversters might have different modbus register adresses!
-# --------------------------------------------------------------------------- #
 
 log = logging.getLogger(__name__)
 
