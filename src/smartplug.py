@@ -148,7 +148,8 @@ def main():
     logPlugNotFound = True
 
     powerOn = False
-    lastPowerState = False
+    lastPowerState = True
+    setFromTrackedToSlowMode = False
 
     while(True):
         readSettings()
@@ -172,6 +173,7 @@ def main():
                         setPlugOff()
                     powerOn = False
                     lastPowerState = powerOn
+                    setFromTrackedToSlowMode = False
                     time.sleep(30)
                     continue
                 
@@ -207,10 +209,16 @@ def main():
                     continue # ignore the rest of code an retry until we get database back because we do not have plausible values
                 con.close()
 
-                # check if there is enough available power during charging and TRACKED chargeMode is on
-                if (nrgKickPower > 0 and availablePower < PLUG_ON_POWER and chargeMode == chargemanagercommon.TRACKED_MODE):
-                    # set to SLOW to give smartPlug more available power
-                    chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE)
+                # check if nrgkick is charging
+                if (nrgKickPower > 0):
+                    # check if there is not enough available power during charging and TRACKED chargeMode is on
+                    if (lastPowerState == False and availablePower < PLUG_ON_POWER and chargeMode == chargemanagercommon.TRACKED_MODE):
+                        # set to SLOW to give smartPlug more available power
+                        chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE)
+                        setFromTrackedToSlowMode = True
+                    # set back to tracked mode if tracked mode was activated bevor and plug power is gone because e.g. tank is full of heat
+                    if (lastPowerState == True and actualPlugPower == 0 and setFromTrackedToSlowMode == True):
+                        chargemanagercommon.setChargemode(chargemanagercommon.TRACKED_MODE)
 
                 try:
                     # we have enough free PV power... start charging based on given time-window and min SOC
