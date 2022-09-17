@@ -59,11 +59,9 @@ Min SOC of house-battery when swtiching to "TRACKED".
 Max allowed battery consumption during charing for compensation of short-term load peaks default is 2600 (best practice) Your can set it lower, but be careful to increase it to avoid charging from your house battery to much. 
 ###### **HOUSE BATTERY / PV TRACKING / Max charging [W]**
 Max power input into the battery (depending on individual battery-hardware) 4950 is default for BYD LVS 8.0. If PV reaches more available power than battery can consume beyond this value, charging will start to avoid to feed free-energy into grid.
-
 ###### **CAR / Max phases [n]**
 Number of phases which your car max allows to load or are max available, for calculating the right charge power (e.g. most small battery VW only allow 2 phases) 
 If your NRGKICK has deactived phases (e.g. 1 of 3) the lower value will be used instead.
-
 ###### **TP-LINK SMART PLUG / IP**
 IP of HS100 or HS110 smart plug.	
 ###### **TP-LINK SMART PLUG / Enabled [0|1]**	
@@ -75,9 +73,9 @@ Available "free" PV power threshold on which smart plug should switch on [Watt]
 ###### **TP-LINK SMART PLUG / On at SOC [%]**	
 Min SOC of house-battery when swtiching smart plug on. 
 ###### **TP-LINK SMART PLUG / 1st on [hh:mm]**
-First interval where plug should turned on.
+First interval where plug should turned on. (set start and end to the same value if you want to disable)
 ###### **TP-LINK SMART PLUG / 2nd on [hh:mm]**
-Second interval where plug should turned on.	
+Second interval where plug should turned on. (set start and end to the same value if you want to disable)
 ###### **TP-LINK SMART PLUG / Start hour [h]**
 Earliest full hour from which smart plug should be turned on. (24h format, e.g. 13,14 or 15)
 
