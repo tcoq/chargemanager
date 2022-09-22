@@ -150,6 +150,7 @@ def main():
     powerOn = False
     lastPowerState = True
     setFromTrackedToSlowMode = False
+    noPlugConsumption = False
 
     while(True):
         readSettings()
@@ -174,6 +175,7 @@ def main():
                     powerOn = False
                     lastPowerState = powerOn
                     setFromTrackedToSlowMode = False
+                    noPlugConsumption = False
                     time.sleep(30)
                     continue
                 
@@ -216,20 +218,33 @@ def main():
                         # set to SLOW to give smartPlug more available power
                         chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE)
                         setFromTrackedToSlowMode = True
-                    # set back to tracked mode if tracked mode was activated bevor and plug power is gone because e.g. tank is full of heat
+                    # set back to tracked mode if tracked mode was activated before and plug power is gone because e.g. tank is full of heat
                     if (lastPowerState == True and actualPlugPower == 0 and setFromTrackedToSlowMode == True):
                         chargemanagercommon.setChargemode(chargemanagercommon.TRACKED_MODE)
+                
+                # check if consumption is gone...
+                if (powerOn == True and actualPlugPower <=0 ):
+                    noPlugConsumption = True
+                    log.info("Smart plug switched off because consumption is gone! ( available PV power:" + str(int(availablePower)) + " Watt, plug power: " + str(actualPlugPower) + " Watt, soc: " + str(soc) + " %)")
+
+                # switch plug off if there is no longer any concumption...
+                if (noPlugConsumption == True):
+                    setPlugOff() 
+                    lastPowerState == False
+                    powerOn == False
+                    time.sleep(30)
+                    continue
 
                 try:
                     # we have enough free PV power... start charging based on given time-window and min SOC
                     if (soc > PLUG_START_FROM_SOC and int(availablePower + actualPlugPower) > PLUG_ON_POWER):
                         powerOn = True
-                        log.info("Normal power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
+                        log.debug("Normal power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
                     # battery is full but PV power is not enought now... allow using house battery with max 55% Watt consumption and in given time windows
                     elif (int(soc) >= ALLOW_CHARGE_FROM_BATTERY_SOC and int(availablePower + actualPlugPower) > (PLUG_ON_POWER * -0.55) and PLUG_ALLOWED_USE_HOUSE_BATTERY == 1):
                         powerOn = True
                         ALLOW_CHARGE_FROM_BATTERY_SOC = 94
-                        log.info("Charge from battery power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
+                        log.debug("Charge from battery power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
                     else:
                         powerOn = False
                         ALLOW_CHARGE_FROM_BATTERY_SOC = 99
@@ -238,10 +253,11 @@ def main():
                     if (powerOn == True):
                         if (lastPowerState == False):
                             setPlugOn()
+                            log.info("Smart plug switched on! (available PV power:" + str(availablePower) + " Watt)")
                     else:
                         if (lastPowerState == True):
                             setPlugOff() 
-                            log.info("SmartPlug switched off because PV power is gone! (" + str(int(availablePower)) + " Watt)")
+                            log.info("Smart plug switched off because PV power is gone! ( available PV power:" + str(int(availablePower)) + " Watt, plug power: " + str(actualPlugPower) + " Watt, soc: " + str(soc) + " %)")
                             # sleep double time to avoid turn on / off shortly after each other until it is cloudy
                             time.sleep(SLEEP)
                     
