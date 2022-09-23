@@ -230,8 +230,8 @@ def main():
                 # switch plug off if there is no longer any concumption...
                 if (noPlugConsumption == True):
                     setPlugOff() 
-                    lastPowerState == False
-                    powerOn == False
+                    lastPowerState = False
+                    powerOn = False
                     time.sleep(30)
                     continue
 
