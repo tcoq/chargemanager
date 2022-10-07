@@ -66,18 +66,16 @@ If your NRGKICK has deactived phases (e.g. 1 of 3) the lower value will be used 
 IP of HS100 or HS110 smart plug.	
 ###### **TP-LINK SMART PLUG / Enabled [0|1]**	
 Turn it on (1) or deactivate (0).
-###### **TP-LINK SMART PLUG / Allow battery [0|1]**	
-Turn it on (1) if you want to allow house battery support if pv power is shortly gone in cloudy conditions. Battery power is only used if SOC > 94% and 55% of given "On at [W]" free pv power is left.
-###### **TP-LINK SMART PLUG / On at [W]**	
-Available "free" PV power threshold on which smart plug should switch on [Watt]
-###### **TP-LINK SMART PLUG / On at SOC [%]**	
+###### **TP-LINK SMART PLUG / Always on [hh:mm]**
+Interval where plug should turned always (independent from any thresholds) on. (set start and end to the same value if you want to disable)
+###### **TP-LINK PV CONTROLLED / On at [W]**	
+Available "free" PV power threshold on which smart plug should switch on [Watt] Max 3900 Watt), if set to 0 this threshold will be ignored.
+###### **TP-LINK PV CONTROLLED / On at SOC [%]**	
 Min SOC of house-battery when swtiching smart plug on. 
-###### **TP-LINK SMART PLUG / 1st on [hh:mm]**
-First interval where plug should turned on. (set start and end to the same value if you want to disable)
-###### **TP-LINK SMART PLUG / 2nd on [hh:mm]**
-Second interval where plug should turned on. (set start and end to the same value if you want to disable)
-###### **TP-LINK SMART PLUG / Start hour [h]**
-Earliest full hour from which smart plug should be turned on. (24h format, e.g. 13,14 or 15)
+###### **TP-LINK PV CONTROLLED / On between [hh:mm]**
+Interval where plug should turned (depending on thresholds of this section) on. (set start and end to the same value if you want to disable)
+###### **TP-LINK PV CONTROLLED / Allow battery [0|1]**	
+Turn it on (1) if you want to allow house battery support if pv power is shortly gone in cloudy conditions. Battery power is only used if SOC > 94% and 55% of given "On at [W]" free pv power is left.
 
 ###### **SOLAREDGE / IP**	
 Ip address of solaredge inverter.

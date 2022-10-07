@@ -23,23 +23,23 @@ log = logging.getLogger(__name__)
 
 PLUG_IP = 0
 PLUG_ON_POWER = 0
-FIRST_PLUG_START_FROM = "00:00"
-FIRST_PLUG_START_TO = "00:00"
-SECOND_PLUG_START_FROM = "00:00"
-SECOND_PLUG_START_TO = "00:00"
+PV_PLUG_START_FROM = "00:00"
+PV_PLUG_START_TO = "00:00"
+ALWAYS_PLUG_START_FROM = "00:00"
+ALWAYS_PLUG_START_TO = "00:00"
 PLUG_START_FROM_SOC = 0
 PLUG_ALLOWED_USE_HOUSE_BATTERY = 0
 PLUG_PORT = 9999
 
 def readSettings():
-    global PLUG_IP,PLUG_ON_POWER, PLUG_START_FROM_SOC, PLUG_ENABLED, FIRST_PLUG_START_FROM, FIRST_PLUG_START_TO, SECOND_PLUG_START_FROM, SECOND_PLUG_START_TO, PLUG_ALLOWED_USE_HOUSE_BATTERY
+    global PLUG_IP,PLUG_ON_POWER, PLUG_START_FROM_SOC, PLUG_ENABLED, PV_PLUG_START_FROM, PV_PLUG_START_TO, ALWAYS_PLUG_START_FROM, ALWAYS_PLUG_START_TO, PLUG_ALLOWED_USE_HOUSE_BATTERY
     if (chargemanagercommon.SMARTPLUG_SETTINGS_DIRTY == True):
         PLUG_IP = chargemanagercommon.getSetting(chargemanagercommon.PLUGIP)
         PLUG_ON_POWER = int(chargemanagercommon.getSetting(chargemanagercommon.PLUGONPOWER))
-        FIRST_PLUG_START_FROM = chargemanagercommon.getSetting(chargemanagercommon.FIRSTPLUGSTARTFROM)
-        FIRST_PLUG_START_TO = chargemanagercommon.getSetting(chargemanagercommon.FIRSTPLUGSTARTTO)
-        SECOND_PLUG_START_FROM = chargemanagercommon.getSetting(chargemanagercommon.SECONDPLUGSTARTFROM)
-        SECOND_PLUG_START_TO = chargemanagercommon.getSetting(chargemanagercommon.SECONDPLUGSTARTTO)
+        PV_PLUG_START_FROM = chargemanagercommon.getSetting(chargemanagercommon.PVPLUGSTARTFROM)
+        PV_PLUG_START_TO = chargemanagercommon.getSetting(chargemanagercommon.PVPLUGSTARTTO)
+        ALWAYS_PLUG_START_FROM = chargemanagercommon.getSetting(chargemanagercommon.ALWAYSPLUGSTARTFROM)
+        ALWAYS_PLUG_START_TO = chargemanagercommon.getSetting(chargemanagercommon.ALWAYSPLUGSTARTTO)
         PLUG_START_FROM_SOC = int(chargemanagercommon.getSetting(chargemanagercommon.PLUGSTARTFROMSOC))
         PLUG_ENABLED = int(chargemanagercommon.getSetting(chargemanagercommon.PLUGENABLED))
         PLUG_ALLOWED_USE_HOUSE_BATTERY = int(chargemanagercommon.getSetting(chargemanagercommon.ALLOWPLUGUSEHOUSEBATTERY))
@@ -62,9 +62,9 @@ def isNowBetweenTimes(fromTime,toTime):
         return False
 
 def isPowerOnNowAllowed():
-    if (isNowBetweenTimes(FIRST_PLUG_START_FROM,FIRST_PLUG_START_TO) == True):
+    if (isNowBetweenTimes(PV_PLUG_START_FROM,PV_PLUG_START_TO) == True):
         return True
-    elif (isNowBetweenTimes(SECOND_PLUG_START_FROM,SECOND_PLUG_START_TO) == True):
+    elif (isNowBetweenTimes(ALWAYS_PLUG_START_FROM,ALWAYS_PLUG_START_TO) == True):
         return True
     return False
 
@@ -214,7 +214,7 @@ def main():
                 # check if nrgkick is charging
                 if (nrgKickPower > 0):
                     # check if there is not enough available power during charging and TRACKED chargeMode is on
-                    if (lastPowerState == False and availablePower < PLUG_ON_POWER and chargeMode == chargemanagercommon.TRACKED_MODE):
+                    if (lastPowerState == False and availablePower < PLUG_ON_POWER and chargeMode == chargemanagercommon.TRACKED_MODE and noPlugConsumption == False):
                         # set to SLOW to give smartPlug more available power
                         chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE)
                         setFromTrackedToSlowMode = True
@@ -234,17 +234,25 @@ def main():
                     powerOn = False
                     time.sleep(30)
                     continue
-
+                
+                # check if plugPowerOn threshold is zero, than ignore this parameter
+                ignorePlugPower = False
+                if (PLUG_ON_POWER == 0):
+                    ignorePlugPower = True
+                
                 try:
                     # we have enough free PV power... start charging based on given time-window and min SOC
-                    if (soc > PLUG_START_FROM_SOC and int(availablePower + actualPlugPower) > PLUG_ON_POWER):
+                    if (soc > PLUG_START_FROM_SOC and (int(availablePower + actualPlugPower) > PLUG_ON_POWER) or ignorePlugPower):
                         powerOn = True
                         log.debug("Normal power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
                     # battery is full but PV power is not enought now... allow using house battery with max 55% Watt consumption and in given time windows
-                    elif (int(soc) >= ALLOW_CHARGE_FROM_BATTERY_SOC and int(availablePower + actualPlugPower) > (PLUG_ON_POWER * -0.55) and PLUG_ALLOWED_USE_HOUSE_BATTERY == 1):
+                    elif (int(soc) >= ALLOW_CHARGE_FROM_BATTERY_SOC and (int(availablePower + actualPlugPower) > (PLUG_ON_POWER * -0.55) or ignorePlugPower) and PLUG_ALLOWED_USE_HOUSE_BATTERY == 1):
                         powerOn = True
                         ALLOW_CHARGE_FROM_BATTERY_SOC = 94
                         log.debug("Charge from battery power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
+                    elif (isNowBetweenTimes(ALWAYS_PLUG_START_FROM,ALWAYS_PLUG_START_TO) == True):
+                        powerOn = True
+                        log.debug("Power on, because always interval occurred! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
                     else:
                         powerOn = False
                         ALLOW_CHARGE_FROM_BATTERY_SOC = 99

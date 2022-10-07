@@ -32,10 +32,10 @@ SECRETKEY = 'secretkey'
 AUTHENTICATIONENABLED = 'authenticationenabled' 
 PLUGIP = 'plugip' 
 PLUGONPOWER = 'plugonpower'  
-FIRSTPLUGSTARTFROM ='firstPlugstartFrom'
-FIRSTPLUGSTARTTO ='firstPlugstartTo'
-SECONDPLUGSTARTFROM ='secondPlugstartFrom'
-SECONDPLUGSTARTTO ='secondPlugstartTo'
+PVPLUGSTARTFROM ='pvPlugstartFrom'
+PVPLUGSTARTTO ='pvPlugstartTo'
+ALWAYSPLUGSTARTFROM ='alwaysPlugstartFrom'
+ALWAYSPLUGSTARTTO ='alwaysPlugstartTo'
 PLUGSTARTFROMSOC ='plugstartFromSOC'
 PLUGENABLED ='plugEnabled'
 ALLOWPLUGUSEHOUSEBATTERY ='allowPlugUseBattery'
@@ -584,10 +584,10 @@ def initSettingsTable():
         authenticationenabled integer NOT NULL,
         plugip TEXT NOT NULL,
         plugonpower integer NOT NULL,
-        firstPlugstartFrom TEXT NOT NULL,
-        firstPlugstartTo TEXT NOT NULL,
-        secondPlugstartFrom TEXT NOT NULL,
-        secondPlugstartTo TEXT NOT NULL,
+        pvPlugstartFrom TEXT NOT NULL,
+        pvPlugstartTo TEXT NOT NULL,
+        alwaysPlugstartFrom TEXT NOT NULL,
+        alwaysPlugstartTo TEXT NOT NULL,
         plugstartFromSOC integer NOT NULL,
         plugEnabled integer NOT NULL,
         allowPlugUseBattery integer NOT NULL
@@ -620,10 +620,10 @@ def initSettingsTable():
             authenticationenabled,
             plugip,
             plugonpower,
-            firstPlugstartFrom,
-            firstPlugstartTo,
-            secondPlugstartFrom,
-            secondPlugstartTo,
+            pvPlugstartFrom,
+            pvPlugstartTo,
+            alwaysPlugstartFrom,
+            alwaysPlugstartTo,
             plugstartFromSOC,
             plugEnabled,
             allowPlugUseBattery) 
