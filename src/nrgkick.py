@@ -220,7 +220,8 @@ def main():
 
     log.info("Module " + str(__name__) + " started...")
 
-    kickWasStartedNow = False 
+    kickWasStartedNow = False
+    reboot = True
 
     while True:
         try:
@@ -234,7 +235,8 @@ def main():
             # check if nrgkick is available / -1 indicates that nrgkick is offline
             if (actualPower >= 0):
                 # if kick was enabled currently, there is a high propability user want to start charging (set it to slow)
-                if (kickWasStartedNow == False):
+                # avoid setting to slow mode after a server reboot (case: NRGKICK was manually set to disabled (paused for next day) and leave plug in over night / reboot)...
+                if (kickWasStartedNow == False and reboot == False):
                     chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE)
                     kickWasStartedNow = True
 
@@ -314,6 +316,8 @@ def main():
             else:
                 # count retries and only disable after 3 times unavailable to avoid short network interrupts
                 retryDisconnectCount += 1
+                reboot = False
+
                 if (retryDisconnectCount == 3):
                         chargemanagercommon.setNrgkickDisconnected()
                         chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
