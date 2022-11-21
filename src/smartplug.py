@@ -151,11 +151,11 @@ def main():
     lastPowerState = True
     setFromTrackedToSlowMode = False
     noPlugConsumption = False
+    ALLOW_CHARGE_FROM_BATTERY_SOC = 99
 
     while(True):
         readSettings()
 
-        ALLOW_CHARGE_FROM_BATTERY_SOC = 99
         availablePower = 0
         actualPlugPower = 0
         nrgKickPower = 0
