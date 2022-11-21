@@ -140,6 +140,9 @@ def main():
     time.tzset()
 
     log.info("Module " + str(__name__) + " started...")
+    
+    # be sure we have a clean state at start-up
+    setPlugOff()
 
     # sleep 3 minutes
     SLEEP = 180
@@ -148,7 +151,8 @@ def main():
     logPlugNotFound = True
 
     powerOn = False
-    lastPowerState = True
+    lastPowerState = False
+
     setFromTrackedToSlowMode = False
     noPlugConsumption = False
     ALLOW_CHARGE_FROM_BATTERY_SOC = 99
@@ -244,15 +248,15 @@ def main():
                     # we have enough free PV power... start charging based on given time-window and min SOC
                     if (soc > PLUG_START_FROM_SOC and (int(availablePower + actualPlugPower) > PLUG_ON_POWER) or ignorePlugPower):
                         powerOn = True
-                        log.debug("Normal power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
+                        log.info("Normal power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
                     # battery is full but PV power is not enought now... allow using house battery with max 55% Watt consumption and in given time windows
                     elif (int(soc) >= ALLOW_CHARGE_FROM_BATTERY_SOC and (int(availablePower + actualPlugPower) > (PLUG_ON_POWER * 0.55) or ignorePlugPower) and PLUG_ALLOWED_USE_HOUSE_BATTERY == 1):
                         powerOn = True
                         ALLOW_CHARGE_FROM_BATTERY_SOC = 94
-                        log.debug("Charge from battery power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
+                        log.info("Charge from battery power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower) + " lastPowerState: " + str(lastPowerState))
                     elif (isNowBetweenTimes(ALWAYS_PLUG_START_FROM,ALWAYS_PLUG_START_TO) == True):
                         powerOn = True
-                        log.debug("Power on, because always interval occurred! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
+                        log.info("Power on, because always interval occurred! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
                     else:
                         powerOn = False
                         ALLOW_CHARGE_FROM_BATTERY_SOC = 99
