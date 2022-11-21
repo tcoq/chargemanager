@@ -246,7 +246,7 @@ def main():
                         powerOn = True
                         log.debug("Normal power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
                     # battery is full but PV power is not enought now... allow using house battery with max 55% Watt consumption and in given time windows
-                    elif (int(soc) >= ALLOW_CHARGE_FROM_BATTERY_SOC and (int(availablePower + actualPlugPower) > (PLUG_ON_POWER * -0.55) or ignorePlugPower) and PLUG_ALLOWED_USE_HOUSE_BATTERY == 1):
+                    elif (int(soc) >= ALLOW_CHARGE_FROM_BATTERY_SOC and (int(availablePower + actualPlugPower) > (PLUG_ON_POWER * 0.55) or ignorePlugPower) and PLUG_ALLOWED_USE_HOUSE_BATTERY == 1):
                         powerOn = True
                         ALLOW_CHARGE_FROM_BATTERY_SOC = 94
                         log.debug("Charge from battery power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
