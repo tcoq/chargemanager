@@ -218,7 +218,7 @@ def main():
                 # check if nrgkick is charging
                 if (nrgKickPower > 0):
                     # check if there is not enough available power during charging and TRACKED chargeMode is on
-                    if (lastPowerState == False and availablePower < PLUG_ON_POWER and chargeMode == chargemanagercommon.TRACKED_MODE and noPlugConsumption == False):
+                    if (lastPowerState == False and availablePower < PLUG_ON_POWER and chargeMode == chargemanagercommon.TRACKED_MODE and noPlugConsumption == False and setFromTrackedToSlowMode = False):
                         # set to SLOW to give smartPlug more available power
                         chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE)
                         setFromTrackedToSlowMode = True
