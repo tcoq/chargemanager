@@ -209,7 +209,7 @@ def readAndUpdate():
     return chargingpower
 
 #
-#	Main, init and repeat reading
+#   Main, init and repeat reading
 #
 def main():
     global retryDisconnectCount, retryCountStartCharging, retryDisconnectCount,readChargeStatusFromNRGKick,readChargeValueFromNRGKick
@@ -220,7 +220,7 @@ def main():
 
     log.info("Module " + str(__name__) + " started...")
 
-    kickWasStartedNow = False
+    kickPluggedIn = False
     reboot = True
 
     while True:
@@ -234,11 +234,13 @@ def main():
             actualPower = readAndUpdate()
             # check if nrgkick is available / -1 indicates that nrgkick is offline
             if (actualPower >= 0):
-                # if kick was enabled currently, there is a high propability user want to start charging (set it to slow)
+                # if kick plugged in currently, there is a high propability user want to start charging (set it to slow)
                 # avoid setting to slow mode after a server reboot (case: NRGKICK was manually set to disabled (paused for next day) and leave plug in over night / reboot)...
-                if (kickWasStartedNow == False and reboot == False):
-                    chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE)
-                    kickWasStartedNow = True
+                if (kickPluggedIn == False and reboot == False):
+                    if (chargemanagercommon.getChargemode() == chargemanagercommon.DISABLED_MODE):
+                        chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE)
+                        log.info("NRGKick plugged into car. Set to slow mode.")
+                    kickPluggedIn = True
 
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
                 cur = con.cursor()
@@ -316,12 +318,11 @@ def main():
             else:
                 # count retries and only disable after 3 times unavailable to avoid short network interrupts
                 retryDisconnectCount += 1
-                reboot = False
 
                 if (retryDisconnectCount == 3):
                         chargemanagercommon.setNrgkickDisconnected()
                         chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
-                        kickWasStartedNow = False
+                        kickPluggedIn = False
                         log.info("Could not reach NRGKICK, set it now to disconnect status and reset chargemode to disabled!")
                 elif (retryCountStartCharging > 3):
                         # wait 30 seconds after try to reconnect, to reduce heavy reconnect try if it seems to be disconnected
@@ -329,10 +330,10 @@ def main():
                         # avoid overloading counter
                         retryCountStartCharging = 4
             time.sleep(READ_WRITE_INTERVAL_SEC)
+            reboot = False
+            
         except KeyboardInterrupt:
             break
         except:
             log.error("Some error happens, try to repeat: " + traceback.format_exc())
-    
-
-
+   
