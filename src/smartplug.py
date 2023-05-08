@@ -244,19 +244,20 @@ def main():
                 if (PLUG_ON_POWER == 0):
                     ignorePlugPower = True
                 
+                logText = "DEFAULT MODE"
                 try:
                     # we have enough free PV power... start charging based on given time-window and min SOC
                     if (soc > PLUG_START_FROM_SOC and (int(availablePower + actualPlugPower) > PLUG_ON_POWER) or ignorePlugPower):
                         powerOn = True
-                        log.info("Normal power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
+                        logText = "DEFAULT MODE"
                     # battery is full but PV power is not enought now... allow using house battery with max 55% Watt consumption and in given time windows
                     elif (int(soc) >= ALLOW_CHARGE_FROM_BATTERY_SOC and (int(availablePower + actualPlugPower) > (PLUG_ON_POWER * 0.55) or ignorePlugPower) and PLUG_ALLOWED_USE_HOUSE_BATTERY == 1):
                         powerOn = True
                         ALLOW_CHARGE_FROM_BATTERY_SOC = 94
-                        log.info("Charge from battery power on! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower) + " lastPowerState: " + str(lastPowerState))
+                        logText = "BATTERY MODE"
                     elif (isNowBetweenTimes(ALWAYS_PLUG_START_FROM,ALWAYS_PLUG_START_TO) == True):
                         powerOn = True
-                        log.info("Power on, because always interval occurred! availablePower:" + str(availablePower) + " plugPower: " + str(actualPlugPower))
+                        logText = "ALWAYS MODE"
                     else:
                         powerOn = False
                         ALLOW_CHARGE_FROM_BATTERY_SOC = 99
@@ -265,7 +266,7 @@ def main():
                     if (powerOn == True):
                         if (lastPowerState == False):
                             setPlugOn()
-                            log.info("Smart plug switched on! (available PV power:" + str(availablePower) + " Watt)")
+                            log.info("Smart plug switched on! (available PV power:" + str(availablePower) + " Watt)" + logText)
                     else:
                         if (lastPowerState == True):
                             setPlugOff() 
