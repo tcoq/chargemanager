@@ -19,7 +19,7 @@ def main():
     time.tzset()
 
     logging.basicConfig(format='%(asctime)s %(module)s %(levelname)s %(message)s', filename='/data/logs.log', filemode='w', level=logging.INFO)
-    logging.info("Start chargemanager...")
+    logging.info("Start chargemanager..")
 
     chargemanagercommon.init()
 
