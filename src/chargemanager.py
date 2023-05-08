@@ -232,7 +232,6 @@ def calcEfficientChargingStrategy():
             else:
                 chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE) # disabled
                 log.info("Battery protection switch to disabled mode! Hour: " + str(thisDayTime.hour))
-            chargingPossible = 0
     else:
         batteryProtectionEnabled = False
 
