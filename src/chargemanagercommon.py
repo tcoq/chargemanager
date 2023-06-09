@@ -328,13 +328,14 @@ def isNrgkickConnected():
     status = 0
     try:
         cur.execute("SELECT connected FROM nrgkick")
-        status = cur.fetchone()
+        val = cur.fetchone()
         cur.close()
+        status = int((val[0]))
     except:
         log.error(traceback.format_exc()) 
     con.close()
 
-    if int((status[0]) == 1):
+    if (status == 1):
         return 1
     else:
         return 0
