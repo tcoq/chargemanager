@@ -197,7 +197,7 @@ def main():
                         continue
 
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-                cur = con.cursor()
+                
                 try:
                     cur = con.cursor()
                     cur.execute("select avg(availablepower_withoutcharging),max(soc) from modbus WHERE timestamp between datetime('now','-4 minute','localtime') AND datetime('now','localtime')")

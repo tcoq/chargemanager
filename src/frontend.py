@@ -54,8 +54,9 @@ def checkAuth(request):
 #
 def getJSONForSolaredgeData():
         con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-        cur = con.cursor()
+        
         try:
+            cur = con.cursor()
             title = "Solaredge"
             # build 5 minute intervals of data
             sql = """
@@ -87,8 +88,9 @@ def renderPage():
         secret = 0
 
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     try:
+        cur = con.cursor()
         cur.execute("SELECT timestamp,pvprod,houseconsumption,acpowertofromgrid,batterypower,temperature,soc,soh,status FROM modbus order by timestamp desc LIMIT 1")
         row = cur.fetchone()
 
@@ -132,8 +134,8 @@ def setChargemode():
     chargemode = request.form["chargemode"]
 
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
     try:
+        cur = con.cursor()
         cur.execute("UPDATE controls set chargemode = " + chargemode)
         con.commit()
         cur.close()

@@ -179,8 +179,9 @@ def readAndUpdate():
         log.debug(chargingcurrentmax)
 
         con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-        cur = con.cursor()
+        
         try:
+            cur = con.cursor()
             nrg_update_sql = """
             UPDATE 'nrgkick' SET 
             timestamp = """ + str(timestamp) + "," + """
@@ -243,8 +244,9 @@ def main():
                     kickPluggedIn = True
 
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-                cur = con.cursor()
+                
                 try:
+                    cur = con.cursor()
                     cur.execute("SELECT availablePowerRange,chargingPossible,chargemode FROM controls")
                     data = cur.fetchone()
                     cur.close()
@@ -302,8 +304,9 @@ def main():
                         chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
                 # write into charging log
                 con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-                cur = con.cursor()
+                
                 try:
+                    cur = con.cursor()
                     tz = pytz.timezone('Europe/Berlin')
                     timestamp = datetime.now(tz)
                     # TO-DO REFACTORING: 

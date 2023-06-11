@@ -123,8 +123,9 @@ def readModbus(client):
     nrgkick_power = 0
 
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+
     try:
+        cur = con.cursor()
         cur.execute("SELECT chargingpower FROM nrgkick")
         nrgkick = cur.fetchone()
         cur.close()

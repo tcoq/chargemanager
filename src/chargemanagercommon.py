@@ -70,23 +70,27 @@ def getSetting(key):
 
 def getSettings():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+
     try:
+        cur = con.cursor()
         cur.execute("SELECT * FROM settings")
         settings = cur.fetchone()
         data = {}
         for idx, col in enumerate(cur.description):
             data[col[0]] = settings[idx]
         cur.close() 
+        con.close()
         return data 
     except:
+        log.error(traceback.format_exc()) 
         con.close()
         return {}
 
 def saveSettings(data):
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     try:
+        cur = con.cursor()
         query = f"UPDATE settings SET " + ', '.join(
         "{}=?".format(k) for k in data.keys())
         # for debugging
@@ -104,8 +108,9 @@ def saveSettings(data):
 #
 def setPhases(value):
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     try:
+        cur = con.cursor()
         cur.execute("UPDATE nrgkick SET phases = " + str(value))
         con.commit()
         cur.close()
@@ -120,8 +125,9 @@ def setPhases(value):
 #
 def getPhases():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     try:
+        cur = con.cursor()
         cur.execute("SELECT phases FROM nrgkick")
         chargemode = cur.fetchone()
         cur.close()
@@ -273,8 +279,9 @@ def getCurrent(availablePowerRange):
 #-1 = error
 def getChargemode():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     try:
+        cur = con.cursor()
         cur.execute("SELECT chargemode FROM controls")
         chargemode = cur.fetchone()
         cur.close()
@@ -298,8 +305,9 @@ def setChargemode(chargemode):
         return
 
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     try:
+        cur = con.cursor()
         cur.execute("UPDATE controls SET chargemode = " + str(chargemode))
         con.commit()
         cur.close()
@@ -309,8 +317,9 @@ def setChargemode(chargemode):
 
 def setNrgkickDisconnected():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     try:
+        cur = con.cursor()
         cur.execute("UPDATE nrgkick SET connected = 0, chargingpower = 0")
         con.commit()
         cur.close()
@@ -324,9 +333,10 @@ def setNrgkickDisconnected():
 # 0 = NRGKick is not connected
 def isNrgkickConnected():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     status = 0
     try:
+        cur = con.cursor()
         cur.execute("SELECT connected FROM nrgkick")
         val = cur.fetchone()
         cur.close()
@@ -346,9 +356,10 @@ def isNrgkickConnected():
 # 0 = NRGKick is not charging
 def isNrgkickCharging():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     chargingpower = 0
     try:
+        cur = con.cursor()
         cur.execute("SELECT chargingpower FROM nrgkick")
         chargingpower = cur.fetchone()
         cur.close()
@@ -367,8 +378,9 @@ def isNrgkickCharging():
 # -1 = error
 def getSmartPlugStatus():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     try:
+        cur = con.cursor()
         cur.execute("SELECT smartPlugStatus FROM controls")
         smartPlugStatus = cur.fetchone()
         cur.close()
@@ -388,8 +400,9 @@ def setSmartPlugStatus(smartPlugStatus):
         return
 
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+    
     try:
+        cur = con.cursor()
         cur.execute("UPDATE controls SET smartPlugStatus = " + str(smartPlugStatus))
         con.commit()
         cur.close()
@@ -404,8 +417,9 @@ def setSmartPlugStatus(smartPlugStatus):
 # -1 = error
 def getCloudy():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+
     try:
+        cur = con.cursor()
         cur.execute("SELECT cloudy FROM controls")
         cloudy = cur.fetchone()
         cur.close()
@@ -426,8 +440,9 @@ def setCloudy(cloudy):
         return
 
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
+
     try:
+        cur = con.cursor()
         cur.execute("UPDATE controls SET cloudy = " + str(cloudy))
         con.commit()
         cur.close()
@@ -438,7 +453,6 @@ def setCloudy(cloudy):
 
 def initModbusTable():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
 
     modbus_sql = """
     CREATE TABLE IF NOT EXISTS modbus (
@@ -457,6 +471,7 @@ def initModbusTable():
     soc REAL NOT NULL,
     soh REAL NOT NULL)"""
     try:
+        cur = con.cursor()
         cur.execute(modbus_sql)
         con.commit()
         cur.close()
@@ -466,7 +481,6 @@ def initModbusTable():
 
 def initNrgkicktable():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
 
     nrgkick_sql = """
     CREATE TABLE IF NOT EXISTS nrgkick (
@@ -481,6 +495,7 @@ def initNrgkicktable():
     chargingcurrentmax REAL NOT NULL,
     phases integer NOT NULL)"""
     try:
+        cur = con.cursor()
         cur.execute(nrgkick_sql)
         con.commit()
         cur.close()
@@ -514,7 +529,6 @@ def initNrgkicktable():
 
 def initChargelogTable():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
 
     chargelog_sql = """
     CREATE TABLE IF NOT EXISTS chargelog (
@@ -522,6 +536,7 @@ def initChargelogTable():
     currentChargingPower integer NOT NULL,
     chargingPossible integer NOT NULL)"""
     try:
+        cur = con.cursor()
         cur.execute(chargelog_sql)
         con.commit()
         cur.close()
@@ -532,7 +547,6 @@ def initChargelogTable():
 
 def initControlsTable():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
 
     chargemode = None
     try:
@@ -545,6 +559,7 @@ def initControlsTable():
         cloudy integer NOT NULL,
         smartPlugStatus integer NOT NULL
         )"""
+        cur = con.cursor()
         cur.execute(controls_sql)
         cur.close()
         cur = con.cursor()
@@ -564,7 +579,6 @@ def initControlsTable():
 
 def initSettingsTable():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
-    cur = con.cursor()
     settings = None
     try:
         settings_sql = """
@@ -593,6 +607,7 @@ def initSettingsTable():
         plugEnabled integer NOT NULL,
         allowPlugUseBattery integer NOT NULL
         )"""
+        cur = con.cursor()
         cur.execute(settings_sql)
         cur.close()
         cur = con.cursor()
