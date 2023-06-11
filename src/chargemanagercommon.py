@@ -79,12 +79,12 @@ def getSettings():
         for idx, col in enumerate(cur.description):
             data[col[0]] = settings[idx]
         cur.close() 
-        con.close()
         return data 
     except:
         log.error(traceback.format_exc()) 
-        con.close()
         return {}
+    finally:
+        con.close()
 
 def saveSettings(data):
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -100,7 +100,8 @@ def saveSettings(data):
         cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
 #
 # Sets the current number of available phases at the charger
@@ -116,7 +117,8 @@ def setPhases(value):
         cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
 #
 # Returns the current number of available phases by the charger
@@ -134,7 +136,8 @@ def getPhases():
     except:
         con.close()
         return -1
-    con.close()
+    finally:
+        con.close()
 
     if (int(chargemode[0]) == None):
         return -1
@@ -288,7 +291,8 @@ def getChargemode():
     except:
         con.close()
         return -1
-    con.close()
+    finally:
+        con.close()
     return int(chargemode[0])
 
 #
@@ -313,7 +317,8 @@ def setChargemode(chargemode):
         cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
 def setNrgkickDisconnected():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -325,7 +330,8 @@ def setNrgkickDisconnected():
         cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
 #
 # Returns connected status
@@ -343,7 +349,8 @@ def isNrgkickConnected():
         status = int((val[0]))
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
     if (status == 1):
         return 1
@@ -365,7 +372,9 @@ def isNrgkickCharging():
         cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
+        
     if (int(chargingpower[0]) > 0):
         return int(chargingpower[0])
     else:
@@ -387,7 +396,9 @@ def getSmartPlugStatus():
     except:
         con.close()
         return -1
-    con.close()
+    finally:
+        con.close()
+        
     return int(smartPlugStatus[0])
 
 #
@@ -408,7 +419,8 @@ def setSmartPlugStatus(smartPlugStatus):
         cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
 #
 # Returns cloudy status
@@ -426,7 +438,9 @@ def getCloudy():
     except:
         con.close()
         return -1
-    con.close()
+    finally:
+        con.close()
+        
     return int(cloudy[0])
 
 #
@@ -448,7 +462,8 @@ def setCloudy(cloudy):
         cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
 
 def initModbusTable():
@@ -477,7 +492,8 @@ def initModbusTable():
         cur.close()
     except:
             log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
 def initNrgkicktable():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -525,7 +541,8 @@ def initNrgkicktable():
             log.debug(nrg_insert_sql)
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
 def initChargelogTable():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -542,7 +559,8 @@ def initChargelogTable():
         cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
 
 def initControlsTable():
@@ -575,7 +593,8 @@ def initControlsTable():
             cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
 def initSettingsTable():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
@@ -675,7 +694,8 @@ def initSettingsTable():
             cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
 
 class StdevFunc:
     def __init__(self):

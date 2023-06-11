@@ -69,7 +69,8 @@ def getJSONForSolaredgeData():
             cur.close()
         except:
             log.error(traceback.format_exc())
-        con.close()
+        finally:
+            con.close()
         return json.dumps(data)
 #
 # Render index html
@@ -101,8 +102,9 @@ def renderPage():
         controls = cur.fetchone()
         cur.close()
     except:
-        log.error(traceback.format_exc())  
-    con.close()
+        log.error(traceback.format_exc())
+    finally:
+        con.close()
 
     if row == None or nrgkick == None or controls == None:
         return "No data" 
@@ -141,7 +143,8 @@ def setChargemode():
         cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close()
+    finally:
+        con.close()
     
     if (int(AUTHENTICATION_ENABLED) == 1):
         return redirect(url_for('renderPage', secret = SECRET_KEY))

@@ -200,7 +200,8 @@ def readAndUpdate():
             cur.close()
         except:
             log.error(traceback.format_exc()) 
-        con.close() 
+        finally:
+            con.close()
     except:
         log.error(traceback.format_exc())  
 
@@ -257,7 +258,8 @@ def main():
                     log.error(traceback.format_exc()) 
                     con.close()
                     continue # ignore the rest of code an retry until we get database back because we do not have plausible values
-                con.close()
+                finally:
+                    con.close()
 
                 # calc charge power / min = 6 (default)
                 chargePowerValue = 6
@@ -316,7 +318,8 @@ def main():
                     cur.close()
                 except:
                     log.error(traceback.format_exc()) 
-                con.close()
+                finally:
+                    con.close()
                 retryDisconnectCount = 0
             else:
                 # count retries and only disable after 3 times unavailable to avoid short network interrupts

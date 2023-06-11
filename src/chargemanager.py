@@ -65,7 +65,6 @@ def checkCloudyConditions():
         result = cur.fetchall()
         cur.close()
         if (len(result) <= 1):
-            con.close()
             return cloudy
 
         data = [row[0] for row in result]
@@ -83,7 +82,8 @@ def checkCloudyConditions():
                 stdDev = int(result)
     except:
         log.error(traceback.format_exc()) 
-    con.close() 
+    finally:
+        con.close()
 
     # check if it is cloudy
     if (stdDev > STD_DEV_THRESHOLD):
@@ -155,7 +155,8 @@ def calcEfficientChargingStrategy():
             first = False
     except:
         log.error(traceback.format_exc())  
-    con.close()
+    finally:
+        con.close()
      
     # check if weather is cloudy
     cloudyConditions = checkCloudyConditions()
@@ -286,7 +287,8 @@ def calcEfficientChargingStrategy():
             cur.close()
         except:
             log.error(traceback.format_exc()) 
-        con.close()
+        finally:
+            con.close()
         log.debug("Current available power range changed to: " + str(newAvailablePowerRange) + " last available power range was:" + str(availablePowerRange) + " chargingPossible: " + str(chargingPossible) + " phases: " + str(phases) + " cloudy: " + str(cloudyConditions) + " minCharge: " + str(minCharge) + " soc:" + str(soc))
 
     # check if power ranges changes
@@ -312,7 +314,8 @@ def cleanupData():
         cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close() 
+    finally:
+        con.close()
 
 #
 #	Main, init and repeat reading

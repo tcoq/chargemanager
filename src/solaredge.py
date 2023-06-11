@@ -73,7 +73,8 @@ def cleanupData():
         cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close() 
+    finally:
+        con.close()
 
 #
 #	Read data from modbus and store them in SQLLite
@@ -147,7 +148,8 @@ def readModbus(client):
             cur.close()
     except:
         log.error(traceback.format_exc()) 
-    con.close() 
+    finally:
+        con.close()
 
     # for debugging
     if (False):

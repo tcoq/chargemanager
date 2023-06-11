@@ -212,7 +212,8 @@ def main():
                     log.error('Problems fetching modbus data!')
                     time.sleep(10)
                     continue # ignore the rest of code an retry until we get database back because we do not have plausible values
-                con.close()
+                finally:
+                    con.close()
 
                 # check if nrgkick is charging
                 if (nrgKickPower > 0):
