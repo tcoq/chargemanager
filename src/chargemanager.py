@@ -55,7 +55,7 @@ def checkCloudyConditions():
     
     cloudy = 0
     
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = chargemanagercommon.getDBConnection()
 
     stdDev = 0
     trend = None
@@ -117,7 +117,7 @@ def calcEfficientChargingStrategy():
     currentBatteryPower = 0
     soc = 0
 
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = chargemanagercommon.getDBConnection()
     
     try:
         cur = con.cursor()
@@ -275,7 +275,7 @@ def calcEfficientChargingStrategy():
             toggleToTrackedMode = True
             log.info("Auto switch from tracked to slow mode! Hour: " + str(thisDayTime.hour))
 
-        con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+        con = chargemanagercommon.getDBConnection()
         try:
             # reset toggle if there is no free power anymore and charging was disabled to avoid jumping back from manual mode to tracked
             cm = chargemanagercommon.getChargemode()
@@ -302,7 +302,7 @@ def calcEfficientChargingStrategy():
 #
 def cleanupData():
     log.debug("Try connecting sqllite...")
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = chargemanagercommon.getDBConnection()
     try:
         cur = con.cursor()
         cur.execute("delete from chargelog where timestamp < datetime('now','-72 hour','localtime')")

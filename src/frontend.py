@@ -53,7 +53,7 @@ def checkAuth(request):
 # JSON data for GoogleChart input
 #
 def getJSONForSolaredgeData():
-        con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+        con = chargemanagercommon.getDBConnection()
         
         try:
             cur = con.cursor()
@@ -88,7 +88,7 @@ def renderPage():
     elif (status == 0):
         secret = 0
 
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = chargemanagercommon.getDBConnection()
     
     try:
         cur = con.cursor()
@@ -135,7 +135,7 @@ def setChargemode():
 
     chargemode = request.form["chargemode"]
 
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = chargemanagercommon.getDBConnection()
     try:
         cur = con.cursor()
         cur.execute("UPDATE controls set chargemode = " + chargemode)

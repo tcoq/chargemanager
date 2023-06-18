@@ -196,7 +196,7 @@ def main():
                         time.sleep(30)
                         continue
 
-                con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+                con = chargemanagercommon.getDBConnection()
                 
                 try:
                     cur = con.cursor()

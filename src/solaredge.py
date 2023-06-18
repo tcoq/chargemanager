@@ -63,7 +63,7 @@ def readData(client,address,size,typ):
 #
 def cleanupData():
     log.debug("Try connecting sqllite...")
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = chargemanagercommon.getDBConnection()
     try:
         cur = con.cursor()
         cur.execute("delete from modbus where timestamp < datetime('now','-72 hour','localtime')")
@@ -123,7 +123,7 @@ def readModbus(client):
     nrgkick = None
     nrgkick_power = 0
 
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = chargemanagercommon.getDBConnection()
 
     try:
         cur = con.cursor()

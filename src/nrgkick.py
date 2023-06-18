@@ -178,7 +178,7 @@ def readAndUpdate():
         log.debug(chargingcurrentmin)
         log.debug(chargingcurrentmax)
 
-        con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+        con = chargemanagercommon.getDBConnection()
         
         try:
             cur = con.cursor()
@@ -244,7 +244,7 @@ def main():
                         log.info("NRGKick plugged into car. Set to slow mode.")
                     kickPluggedIn = True
 
-                con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+                con = chargemanagercommon.getDBConnection()
                 
                 try:
                     cur = con.cursor()
@@ -305,7 +305,7 @@ def main():
                         log.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange))
                         chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
                 # write into charging log
-                con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+                con = chargemanagercommon.getDBConnection()
                 
                 try:
                     cur = con.cursor()

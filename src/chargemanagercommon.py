@@ -68,8 +68,16 @@ def init():
 def getSetting(key):
     return getSettings()[key]
 
-def getSettings():
+def getDBConnection():
     con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con.execute('PRAGMA synchronous = normal')
+    con.execute('PRAGMA journal_mode = WAL')
+    con.execute('pragma temp_store = memory')
+    con.execute('pragma mmap_size = 30000000000')
+    return con
+
+def getSettings():
+    con = getDBConnection()
 
     try:
         cur = con.cursor()
@@ -87,7 +95,7 @@ def getSettings():
         con.close()
 
 def saveSettings(data):
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
     
     try:
         cur = con.cursor()
@@ -108,7 +116,7 @@ def saveSettings(data):
 # Possible values 1-3
 #
 def setPhases(value):
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
     
     try:
         cur = con.cursor()
@@ -126,7 +134,7 @@ def setPhases(value):
 # Returns: 1-3 or -1 for errors
 #
 def getPhases():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
     
     try:
         cur = con.cursor()
@@ -281,7 +289,7 @@ def getCurrent(availablePowerRange):
 # 3 = tracked
 #-1 = error
 def getChargemode():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
     
     try:
         cur = con.cursor()
@@ -308,7 +316,7 @@ def setChargemode(chargemode):
         log.error("Invaild chargemode: " + str(chargemode))
         return
 
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
     
     try:
         cur = con.cursor()
@@ -321,7 +329,7 @@ def setChargemode(chargemode):
         con.close()
 
 def setNrgkickDisconnected():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
     
     try:
         cur = con.cursor()
@@ -338,7 +346,7 @@ def setNrgkickDisconnected():
 # 1 = NRGKick is connected
 # 0 = NRGKick is not connected
 def isNrgkickConnected():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
     
     status = 0
     try:
@@ -362,7 +370,7 @@ def isNrgkickConnected():
 # 1> = Current NRGKick power in watt
 # 0 = NRGKick is not charging
 def isNrgkickCharging():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
     
     chargingpower = 0
     try:
@@ -386,7 +394,7 @@ def isNrgkickCharging():
 # 1 = on
 # -1 = error
 def getSmartPlugStatus():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
     
     try:
         cur = con.cursor()
@@ -410,7 +418,7 @@ def setSmartPlugStatus(smartPlugStatus):
         log.error("Invaild smartPlugStatus: " + str(smartPlugStatus))
         return
 
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
     
     try:
         cur = con.cursor()
@@ -428,7 +436,7 @@ def setSmartPlugStatus(smartPlugStatus):
 # 1 = cloudy
 # -1 = error
 def getCloudy():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
 
     try:
         cur = con.cursor()
@@ -453,7 +461,7 @@ def setCloudy(cloudy):
         log.error("Invaild cloudy pareameter: " + str(cloudy))
         return
 
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
 
     try:
         cur = con.cursor()
@@ -467,7 +475,7 @@ def setCloudy(cloudy):
 
 
 def initModbusTable():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
 
     modbus_sql = """
     CREATE TABLE IF NOT EXISTS modbus (
@@ -496,7 +504,7 @@ def initModbusTable():
         con.close()
 
 def initNrgkicktable():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
 
     nrgkick_sql = """
     CREATE TABLE IF NOT EXISTS nrgkick (
@@ -545,7 +553,7 @@ def initNrgkicktable():
         con.close()
 
 def initChargelogTable():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
 
     chargelog_sql = """
     CREATE TABLE IF NOT EXISTS chargelog (
@@ -564,7 +572,7 @@ def initChargelogTable():
 
 
 def initControlsTable():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
 
     chargemode = None
     try:
@@ -597,7 +605,7 @@ def initControlsTable():
         con.close()
 
 def initSettingsTable():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = getDBConnection()
     settings = None
     try:
         settings_sql = """
