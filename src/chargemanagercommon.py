@@ -496,6 +496,7 @@ def initModbusTable():
     try:
         cur = con.cursor()
         cur.execute(modbus_sql)
+        cur.execute("CREATE INDEX IF NOT EXISTS index_modbus ON modbus (timestamp)")
         con.commit()
         cur.close()
     except:
@@ -563,6 +564,7 @@ def initChargelogTable():
     try:
         cur = con.cursor()
         cur.execute(chargelog_sql)
+        cur.execute("CREATE INDEX IF NOT EXISTS index_chargelog ON chargelog (timestamp)")
         con.commit()
         cur.close()
     except:
