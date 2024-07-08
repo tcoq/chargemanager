@@ -222,38 +222,32 @@ def main():
 
     log.info("Module " + str(__name__) + " started...")
 
-    kickPluggedIn = False
-    reboot = True
 
     while True:
         try:
             readSettings()
 
-            chargemode = chargemanagercommon.DISABLED_MODE
+            chargemode = chargemanagercommon.getChargemode()
             chargingPossible = 0
             availablePowerRange = 0
             
             actualPower = readAndUpdate()
             # check if nrgkick is available / -1 indicates that nrgkick is offline
             if (actualPower >= 0):
-                # if kick plugged in currently, there is a high propability user want to start charging (set it to slow)
-                # avoid setting to slow mode after a server reboot (case: NRGKICK was manually set to disabled (paused for next day) and leave plug in over night / reboot)...
-                if (kickPluggedIn == False and reboot == False):
-                    if (chargemanagercommon.getChargemode() == chargemanagercommon.DISABLED_MODE):
-                        chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE)
-                        log.info("NRGKick plugged into car. Set to slow mode.")
-                    kickPluggedIn = True
-
-                con = chargemanagercommon.getDBConnection()
+                               
+                # NRGKick pluged in currently...
+                if (chargemode == chargemanagercommon.DISABLED_MODE):
+                    chargemode = chargemanagercommon.TRACKED_MODE
+                
+                con = chargemanagercommon.getDBConnection()              
                 
                 try:
                     cur = con.cursor()
-                    cur.execute("SELECT availablePowerRange,chargingPossible,chargemode FROM controls")
+                    cur.execute("SELECT availablePowerRange,chargingPossible FROM controls")
                     data = cur.fetchone()
                     cur.close()
                     availablePowerRange = data[0]
                     chargingPossible = data[1]
-                    chargemode = data[2]
                 except:
                     log.error(traceback.format_exc()) 
                     con.close()
@@ -264,11 +258,7 @@ def main():
                 # calc charge power / min = 6 (default)
                 chargePowerValue = 6
 
-                if (chargemode == chargemanagercommon.DISABLED_MODE):
-                    # disabled mode
-                    chargePowerValue = 6
-                    chargingPossible = 0
-                elif (chargemode == chargemanagercommon.FAST_MODE):
+                if (chargemode == chargemanagercommon.FAST_MODE):
                     # fast mode
                     chargePowerValue = 15
                     chargingPossible = 1
@@ -328,15 +318,13 @@ def main():
                 if (retryDisconnectCount == 3):
                         chargemanagercommon.setNrgkickDisconnected()
                         chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
-                        kickPluggedIn = False
                         log.info("Could not reach NRGKICK, set it now to disconnect status and reset chargemode to disabled!")
                 elif (retryCountStartCharging > 3):
-                        # wait 30 seconds after try to reconnect, to reduce heavy reconnect try if it seems to be disconnected
-                        time.sleep(30)
+                        # wait 10 seconds after try to reconnect, to reduce heavy reconnect try if it seems to be disconnected
+                        time.sleep(10)
                         # avoid overloading counter
                         retryCountStartCharging = 4
             time.sleep(READ_WRITE_INTERVAL_SEC)
-            reboot = False
             
         except KeyboardInterrupt:
             break

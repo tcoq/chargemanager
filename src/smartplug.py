@@ -162,7 +162,7 @@ def main():
         availablePower = 0
         actualPlugPower = 0
         nrgKickPower = 0
-        chargeMode = chargemanagercommon.DISABLED_MODE
+        chargeMode = chargemanagercommon.getChargemode()
 
         try:
             if (isPlugAvailable() == True and PLUG_ENABLED == 1):
@@ -187,7 +187,6 @@ def main():
                 nrgKickPower = chargemanagercommon.isNrgkickCharging()
                 # check if NRGKick is charging the car
                 if (nrgKickPower > 0):
-                    chargeMode = chargemanagercommon.getChargemode() 
                     # avoid turning smart plug on in FAST charging mode
                     if (chargeMode == chargemanagercommon.FAST_MODE):
                         powerOn = False

@@ -277,10 +277,6 @@ def calcEfficientChargingStrategy():
 
         con = chargemanagercommon.getDBConnection()
         try:
-            # reset toggle if there is no free power anymore and charging was disabled to avoid jumping back from manual mode to tracked
-            cm = chargemanagercommon.getChargemode()
-            if (chargingPossible == 0 and cm == chargemanagercommon.DISABLED_MODE): # 0 DISABLED     
-                toggleToTrackedMode = True
             cur = con.cursor()
             cur.execute("UPDATE controls set availablePowerRange = " + str(availablePowerRange) + ", chargingPossible=" + str(chargingPossible))
             con.commit()
@@ -321,6 +317,7 @@ def cleanupData():
 #	Main, init and repeat reading
 #
 def main():
+    global toggleToTrackedMode
     os.environ['TZ'] = 'Europe/Berlin'
     time.tzset()
     
@@ -335,6 +332,9 @@ def main():
             try:
                 if (chargemanagercommon.isNrgkickConnected() == 1 and chargemanagercommon.getChargemode() != chargemanagercommon.DISABLED_MODE):
                     calcEfficientChargingStrategy()
+                else:
+                    # reset toggle if there is no free power anymore and charging was disabled to avoid jumping back from manual mode to tracked
+                    toggleToTrackedMode = True
 
                 dt = datetime.now()
                 # clean data 00:00:<31
