@@ -69,7 +69,7 @@ def getSetting(key):
     return getSettings()[key]
 
 def getDBConnection():
-    con = sqlite3.connect('/data/chargemanager_db.sqlite3')
+    con = sqlite3.connect('/data/chargemanager_db.sqlite3',timeout=6)
     con.execute('PRAGMA synchronous = normal')
     con.execute('PRAGMA journal_mode = WAL')
     con.execute('pragma temp_store = memory')
