@@ -214,7 +214,7 @@ def readAndUpdate():
 #   Main, init and repeat reading
 #
 def main():
-    global retryDisconnectCount, retryCountStartCharging, retryDisconnectCount,readChargeStatusFromNRGKick,readChargeValueFromNRGKick
+    global retryDisconnectCount, retryCountStartCharging, readChargeStatusFromNRGKick,readChargeValueFromNRGKick
 
     os.environ['TZ'] = 'Europe/Berlin'
     tz = pytz.timezone('Europe/Berlin')
@@ -235,8 +235,10 @@ def main():
             # check if nrgkick is available / -1 indicates that nrgkick is offline
             if (actualPower >= 0):
                                
+                kickPlugedIn = 0
                 # NRGKick pluged in currently...
                 if (chargemode == chargemanagercommon.DISABLED_MODE):
+                    kickPlugedIn = 1
                     chargemode = chargemanagercommon.TRACKED_MODE
                 
                 con = chargemanagercommon.getDBConnection()              
@@ -248,6 +250,14 @@ def main():
                     cur.close()
                     availablePowerRange = data[0]
                     chargingPossible = data[1]
+                    
+                    # Kick was pluged in but we dont have historical charing data in database
+                    if (kickPlugedIn == 1 and availablePowerRange <=0 ):
+                        # use actualpower currently read from kick
+                        availablePowerRange = actualPower
+                        # we read power from kick, so charingig is possible
+                        chargingPossible = 1
+                    
                 except:
                     log.error(traceback.format_exc()) 
                     con.close()

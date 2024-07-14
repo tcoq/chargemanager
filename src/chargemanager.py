@@ -13,7 +13,6 @@ import time
 import traceback
 import chargemanagercommon
 import logging
-from datetime import datetime
 
 log = logging.getLogger(__name__)
 
