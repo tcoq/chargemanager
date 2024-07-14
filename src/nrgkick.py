@@ -238,6 +238,7 @@ def main():
                 # NRGKick pluged in currently, there was no charge-session before...
                 if (chargemode == chargemanagercommon.DISABLED_MODE):
                     chargemode = chargemanagercommon.SLOW_MODE
+                    chargemanagercommon.setChargemode(chargemode)
                     
                 con = chargemanagercommon.getDBConnection()              
                 
