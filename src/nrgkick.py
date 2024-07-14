@@ -235,12 +235,10 @@ def main():
             # check if nrgkick is available / -1 indicates that nrgkick is offline
             if (actualPower >= 0):
                                
-                kickPlugedIn = 0
-                # NRGKick pluged in currently...
+                # NRGKick pluged in currently, there was no charge-session before...
                 if (chargemode == chargemanagercommon.DISABLED_MODE):
-                    kickPlugedIn = 1
-                    chargemode = chargemanagercommon.TRACKED_MODE
-                
+                    chargemode = chargemanagercommon.SLOW_MODE
+                    
                 con = chargemanagercommon.getDBConnection()              
                 
                 try:
@@ -250,13 +248,6 @@ def main():
                     cur.close()
                     availablePowerRange = data[0]
                     chargingPossible = data[1]
-                    
-                    # Kick was pluged in but we dont have historical charing data in database
-                    if (kickPlugedIn == 1 and availablePowerRange <=0 ):
-                        # use actualpower currently read from kick
-                        availablePowerRange = actualPower
-                        # we read power from kick, so charingig is possible
-                        chargingPossible = 1
                     
                 except:
                     log.error(traceback.format_exc()) 
