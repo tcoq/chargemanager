@@ -161,10 +161,10 @@ def readAndUpdate():
             errorcode = settings['Info']['ErrorCodes'][0]
             isConnected = boolToInt(settings['Info']['Connected'])
             ischarging = boolToInt(settings['Values']['ChargingStatus']['Charging'])
-            readChargeStatusFromNRGKick = ischarging
+            readChargeStatusFromNRGKick = int(ischarging)
 
             chargingcurrent = settings['Values']['ChargingCurrent']['Value']
-            readChargeValueFromNRGKick = chargingcurrent
+            readChargeValueFromNRGKick = int(chargingcurrent)
             chargingcurrentmin =settings['Values']['ChargingCurrent']['Min']
             chargingcurrentmax =settings['Values']['ChargingCurrent']['Max']
         except:
@@ -296,6 +296,9 @@ def main():
                         # if it was not succesful to start charging disable charging
                         log.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange))
                         chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
+                        setChargingCurrent(0,False)
+                        # wait 10 seconds to give kick a chance to switch to new instruction
+                        time.sleep(10)
                 # write into charging log
                 con = chargemanagercommon.getDBConnection()
                 
