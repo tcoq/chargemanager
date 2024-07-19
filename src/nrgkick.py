@@ -296,7 +296,7 @@ def main():
                         # if it was not succesful to start charging disable charging
                         log.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange))
                         chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
-                        setChargingCurrent(0,False)
+                        setChargingCurrent(chargePowerValue,False)
                         # wait 10 seconds to give kick a chance to switch to new instruction
                         time.sleep(10)
                 # write into charging log
