@@ -236,7 +236,7 @@ def main():
             if (actualPower >= 0):
                                
                 # NRGKick pluged in currently, there was no charge-session before...
-                if (chargemode == chargemanagercommon.DISABLED_MODE):
+                if (chargemode == chargemanagercommon.DISABLED_MODE and actualPower > 1):
                     chargemode = chargemanagercommon.SLOW_MODE
                     chargemanagercommon.setChargemode(chargemode)
                     
@@ -294,7 +294,7 @@ def main():
                             break
                     if (succesful == False):
                         # if it was not succesful to start charging disable charging
-                        log.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange))
+                        log.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange) + " actualPower:" + str(actualPower))
                         if (chargemode != chargemanagercommon.DISABLED_MODE):
                             chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
                             setChargingCurrent(chargePowerValue,False)
