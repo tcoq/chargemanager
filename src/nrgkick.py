@@ -239,6 +239,9 @@ def main():
                 if (chargemode == chargemanagercommon.DISABLED_MODE and actualPower > 1):
                     chargemode = chargemanagercommon.SLOW_MODE
                     chargemanagercommon.setChargemode(chargemode)
+                elif (chargemode == chargemanagercommon.DISABLED_MODE and actualPower == 0):
+                    # do noting if disbled mode and no power
+                    return
                     
                 con = chargemanagercommon.getDBConnection()              
                 
@@ -284,7 +287,7 @@ def main():
                         log.debug("Try to set start charging to: " + str(chargingPossible) + " and charge power value to: " + str(chargePowerValue) + " (A) Retry-Count: " + str(x))
                         
                         # wait for nrg and car sync... this could take a while
-                        time.sleep(18)
+                        time.sleep(15)
                         actualPower = readAndUpdate()
                         log.debug("Read actual charging power: " + str(actualPower) + " chargingPossible:" + str(chargingPossible))
 
@@ -294,7 +297,8 @@ def main():
                             break
                     if (succesful == False):
                         # if it was not succesful to start charging disable charging
-                        log.info("DISABLED CHARGING because set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange) + " actualPower:" + str(actualPower))
+                        log.info("Disabled charing. Car might be full")
+                        log.debug("Set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + " readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange) + " actualPower:" + str(actualPower))
                         if (chargemode != chargemanagercommon.DISABLED_MODE):
                             chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
                             setChargingCurrent(chargePowerValue,False)
