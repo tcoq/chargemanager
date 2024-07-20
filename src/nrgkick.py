@@ -240,8 +240,8 @@ def main():
                     chargemode = chargemanagercommon.SLOW_MODE
                     chargemanagercommon.setChargemode(chargemode)
                 elif (chargemode == chargemanagercommon.DISABLED_MODE and actualPower == 0):
-                    # do noting if disbled mode and no power
-                    return
+                    # do noting if disabled mode and no power, but repeat loop
+                    continue
                     
                 con = chargemanagercommon.getDBConnection()              
                 
