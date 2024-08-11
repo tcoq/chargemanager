@@ -31,7 +31,6 @@ retryCountStartCharging = 0
 retryDisconnectCount = 0
 readChargeStatusFromNRGKick = 0
 readChargeValueFromNRGKick = 0
-activeCharingSession = 0
 
 def readSettings():
     global NRGKICK_MEASUREMENTS_URL,NRGKICK_SETTINGS_URL,NRGKICK_PASSWORD,MAX_PHASES
@@ -215,11 +214,13 @@ def readAndUpdate():
 #   Main, init and repeat reading
 #
 def main():
-    global retryDisconnectCount, retryCountStartCharging, readChargeStatusFromNRGKick,readChargeValueFromNRGKick, activeCharingSession
+    global retryDisconnectCount, retryCountStartCharging, readChargeStatusFromNRGKick,readChargeValueFromNRGKick
 
     os.environ['TZ'] = 'Europe/Berlin'
     tz = pytz.timezone('Europe/Berlin')
     time.tzset()
+
+    activeCharingSession = 0
 
     log.info("Module " + str(__name__) + " started...")
 
@@ -234,8 +235,7 @@ def main():
             
             actualPower = readAndUpdate()
             # check if nrgkick is available / -1 indicates that nrgkick is offline
-            if (actualPower >= 0):
-                               
+            if (actualPower >= 0):             
                 # NRGKick pluged in currently, there was no charge-session before...
                 if (chargemode == chargemanagercommon.DISABLED_MODE and actualPower > 1 and activeCharingSession == 0):
                     chargemode = chargemanagercommon.SLOW_MODE
@@ -243,7 +243,9 @@ def main():
                 elif (chargemode == chargemanagercommon.DISABLED_MODE and actualPower == 0):
                     # do noting if disabled mode and no power, but repeat loop
                     continue
-                    
+                
+                activeCharingSession = 1
+                   
                 con = chargemanagercommon.getDBConnection()              
                 
                 try:
@@ -283,10 +285,8 @@ def main():
                     for x in range(3):
                         if (chargingPossible == 1):
                             setChargingCurrent(chargePowerValue,True)
-                            activeCharingSession = 1
                         else:
                             setChargingCurrent(chargePowerValue,False)
-                            activeCharingSession = 0
                         log.debug("Try to set start charging to: " + str(chargingPossible) + " and charge power value to: " + str(chargePowerValue) + " (A) Retry-Count: " + str(x))
                         
                         # wait for nrg and car sync... this could take a while
@@ -328,17 +328,19 @@ def main():
             else:
                 # count retries and only disable after 3 times unavailable to avoid short network interrupts
                 retryDisconnectCount += 1
-                activeCharingSession = 0
                 
                 if (retryDisconnectCount == 3):
                         chargemanagercommon.setNrgkickDisconnected()
                         chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
+                        activeCharingSession = 0
                         log.info("Could not reach NRGKICK, set it now to disconnect status and reset chargemode to disabled!")
                 elif (retryCountStartCharging > 3):
                         # wait 10 seconds after try to reconnect, to reduce heavy reconnect try if it seems to be disconnected
                         time.sleep(10)
                         # avoid overloading counter
                         retryCountStartCharging = 4
+                if (actualPower == 0):
+                    activeCharingSession = 0
             time.sleep(READ_WRITE_INTERVAL_SEC)
             
         except KeyboardInterrupt:
