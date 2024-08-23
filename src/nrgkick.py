@@ -25,7 +25,7 @@ NRGKICK_PASSWORD = 0
 MAX_PHASES = 0
 
 # IMPORTANT: please check the dependencies on this value if you change it 
-READ_WRITE_INTERVAL_SEC = 15
+READ_WRITE_INTERVAL_SEC = 7
 
 retryCountStartCharging = 0
 retryDisconnectCount = 0
@@ -234,7 +234,7 @@ def main():
             availablePowerRange = 0
             
             actualPower = readAndUpdate()
-            #log.info("DEBUG: actualPower:" + str(actualPower) + ",  retryDisconnectCount: " + str(retryDisconnectCount) + ",  retryCountStartCharging: " + str(retryCountStartCharging) + ",  readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + ",  readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick))
+
             # check if nrgkick is available / -1 indicates that nrgkick is offline
             if (actualPower >= 0):
                 
@@ -265,7 +265,8 @@ def main():
 
                 if (chargemode == chargemanagercommon.DISABLED_MODE):
                     # disabled mode
-                    chargePowerValue = 6
+                    # set to current value to avoid to send a change event to nrgkick
+                    chargePowerValue = readChargeValueFromNRGKick
                     chargingPossible = 0
                 if (chargemode == chargemanagercommon.FAST_MODE):
                     # fast mode
@@ -283,6 +284,7 @@ def main():
 
                 # check if NRG Kick status differs from target status
                 if (readChargeValueFromNRGKick != chargePowerValue or readChargeStatusFromNRGKick != chargingPossible):
+                    log.debug("DEBUG: actualPower:" + str(actualPower) + ",  retryDisconnectCount: " + str(retryDisconnectCount) + ",  retryCountStartCharging: " + str(retryCountStartCharging) + ",  readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + ",  readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + ", chargemode: " + str(chargemode) + ", chargingPossible: " + str(chargingPossible) + ", chargePowerValue:" + str(chargePowerValue) + ", activeCharingSession:" + str(activeCharingSession))
                     for x in range(3):
                         if (chargingPossible == 1):
                             setChargingCurrent(chargePowerValue,True)
@@ -297,8 +299,13 @@ def main():
 
                         if ((actualPower > 0 and chargingPossible == 1) or (actualPower == 0 and chargingPossible == 0)): 
                             succesful = True
-                            activeCharingSession = 1
-                            log.info("Set start charging to: " + str(chargingPossible) + " and charge power to: " + str(actualPower) + " (watt) was sucessful! Retry-Count: " + str(x) )
+                            # reset chargingSession
+                            if (chargingPossible == 1):
+                                log.info("Set charge power to: " + str(actualPower) + " (watt) Retry-Count: " + str(x))
+                                activeCharingSession = 1
+                            else:
+                                log.info("Stop charging now... Retry-Count: " + str(x))
+                                activeCharingSession = 0
                             break
                     if (succesful == False):
                         # if it was not succesful to start charging disable charging
