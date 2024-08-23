@@ -223,7 +223,7 @@ def calcEfficientChargingStrategy():
         # break waiting for recalculation
         powerChangeCount = 10000
         
-        # stop charging only if sun is really left and it is out of time range (under min charge, otherwise powerChangeCount = 10000 breaks halt lower timer to allow a power recalculation)
+        # stop charging only if sun is really left and if is out of range (under min charge)
         if (newAvailablePowerRange < minCharge and chargemanagercommon.getChargemode() != chargemanagercommon.FAST_MODE and chargemanagercommon.getChargemode() != chargemanagercommon.SLOW_MODE):
             log.info("Battery protection activated, switch to slow mode! Battery-protection-counter: " + str(batteryProtectionCounter) + " currentBatteryPower: " + str(currentBatteryPower))
             chargemanagercommon.setChargemode(chargemanagercommon.SLOW_MODE) # slow
