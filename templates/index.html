@@ -27,23 +27,22 @@
 		chartArea: {
 			height: 'auto'
 		},
-		height:450,
-		lineWidth: 3,
+		height:500,
+		lineWidth: 5,
 		hAxis: {
 		  title: '',
 		  format: 'HH:mm',
-		  titleTextStyle:{color: '#ffffff',fontSize: 20},
-		  textStyle:{color: '#ffffff', fontSize: 20},
+		  titleTextStyle:{color: '#ffffff',fontSize: 30},
+		  textStyle:{color: '#ffffff', fontSize: 30},
 		  gridlines: { color: 'transparent'},
-		  showTextEvery: 3
 		},
 		vAxis: {
 		  title: 'Watt',
 		  format: '0',
-		  titleTextStyle:{color: '#ffffff',fontSize: 20},
-		  textStyle:{color: '#ffffff', fontSize: 20}
+		  titleTextStyle:{color: '#ffffff',fontSize: 30},
+		  textStyle:{color: '#ffffff', fontSize: 30}
 		},
-		legend: {textStyle: {color: 'gray', fontSize: 20}, position: 'bottom' },
+		legend: {textStyle: {color: 'gray', fontSize: 30}, position: 'top', maxLines:3},
         backgroundColor: '#1e1e2f'
 		};
 		
@@ -173,7 +172,7 @@
 <body onload="loadText()">
 <div class="content">
 	<center>
-	<h2 class="card" style="color:var(--grey)"><div>CHARGEMANAGER <a href="/settings?secret={{secret}}" class="uil uil-setting"></a></div></h2>
+	<h2 class="card" style="color:var(--grey);font-size:34px"><div>CHARGEMANAGER <a href="/settings?secret={{secret}}" class="uil uil-setting"></a></div></h2>
 	<div id="chart_div"></div>
 	<div style="padding:20px">CHARGING STRATEGY:</div>
 	<form action="/chargemode" method="POST" class="form-inline" id="chargemodeform">
@@ -187,7 +186,7 @@
 	<label class="for-checkbox-tools" for="trackedcharging" id="trackedcharginglabel"><i class="uil uil-sun"></i>Tracked</label>
 	</form>
 	<br><br>
-	<h2 class="card" style="color:var(--blue)">NRGKICK</h2>
+	<h2 class="card" style="color:var(--blue);font-size:34px">NRGKICK</h2>
 	<div>{{nrgkick[1]}} Watt</div>
 	<br>
 	<h2 class="card" style="color:red">SOLAREDGE</h2>

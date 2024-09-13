@@ -94,7 +94,7 @@ def setChargingCurrent(currentValue,startCharging):
 def readAndUpdate():
     global readChargeStatusFromNRGKick, readChargeValueFromNRGKick, retryDisconnectCount
     chargingpower = 0
-    isConnected = 0
+    isConnected = -1
     try:
         try:
             resp = requests.get(url=NRGKICK_MEASUREMENTS_URL)
@@ -179,6 +179,12 @@ def readAndUpdate():
 
         con = chargemanagercommon.getDBConnection()
         
+        # sometimes NRGKick delivers incorrect data from the second URL... 
+        # chargingpower is the stronger signal so set isConnected and isCharging to true
+        if (chargingpower > 1):
+            isConnected = 1
+            ischarging = 1
+            
         try:
             cur = con.cursor()
             nrg_update_sql = """
@@ -238,7 +244,7 @@ def main():
             if (actualPower >= 0):
                 
                 # NRGKick pluged in currently, there was no charge-session before...
-                if (chargemode == chargemanagercommon.DISABLED_MODE and actualPower > 1 and activeCharingSession == 0):
+                if (chargemode == chargemanagercommon.DISABLED_MODE and (actualPower > 1 or readChargeStatusFromNRGKick == 1) and activeCharingSession == 0):
                     chargemode = chargemanagercommon.SLOW_MODE
                     chargemanagercommon.setChargemode(chargemode)
                     activeCharingSession = 1
@@ -284,7 +290,7 @@ def main():
 
                 # check if NRG Kick status differs from target status
                 if (readChargeValueFromNRGKick != chargePowerValue or readChargeStatusFromNRGKick != chargingPossible):
-                    log.info("DEBUG: actualPower:" + str(actualPower) + ",  retryDisconnectCount: " + str(retryDisconnectCount) + ",  readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + ",  readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + ", chargemode: " + str(chargemode) + ", chargingPossible: " + str(chargingPossible) + ", chargePowerValue:" + str(chargePowerValue) + ", activeCharingSession:" + str(activeCharingSession))
+                    #log.info("DEBUG: actualPower:" + str(actualPower) + ",  retryDisconnectCount: " + str(retryDisconnectCount) + ",  readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + ",  readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + ", chargemode: " + str(chargemode) + ", chargingPossible: " + str(chargingPossible) + ", chargePowerValue:" + str(chargePowerValue) + ", activeCharingSession:" + str(activeCharingSession))
                     
                     for x in range(3):
                         if (chargingPossible == 1):
@@ -343,7 +349,7 @@ def main():
                         chargemanagercommon.setNrgkickDisconnected()
                         chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
                         activeCharingSession = 0
-                        log.info("Could not reach NRGKICK, set it now to disconnect status and reset chargemode to disabled!")
+                        log.info("Could not reach NRGKICK, set it now to disconnect status and reset chargemode to disabled! ActualPower: " + str(actualPower) + ",retryDisconnectCount:" +  str(retryDisconnectCount))
                         #log.info("_DEBUG: actualPower:" + str(actualPower) + ",  retryDisconnectCount: " + str(retryDisconnectCount) + ",  readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + ",  readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + ", chargemode: " + str(chargemode) + ", chargingPossible: " + str(chargingPossible) + ", chargePowerValue:" + str(chargePowerValue) + ", activeCharingSession:" + str(activeCharingSession))
                 elif (retryDisconnectCount > 3):
                         # wait 5 extra seconds after try to reconnect, to reduce heavy reconnect try if it seems to be disconnected
