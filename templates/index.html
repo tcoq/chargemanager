@@ -25,10 +25,17 @@
 		var options = {
 		interpolateNulls: true,
 		chartArea: {
-			height: 'auto'
+			height: 'auto',
+			width: 'auto'
 		},
 		height:500,
-		lineWidth: 5,
+		width:'100%',
+		lineWidth: 4,
+		series: {
+            0: { color: '#1c91c0' },
+            1: { color: '#e2431e' },
+            2: { color: '#FE9A2E' }
+        },
 		hAxis: {
 		  title: '',
 		  format: 'HH:mm',
@@ -42,7 +49,7 @@
 		  titleTextStyle:{color: '#ffffff',fontSize: 30},
 		  textStyle:{color: '#ffffff', fontSize: 30}
 		},
-		legend: {textStyle: {color: 'gray', fontSize: 30}, position: 'top', maxLines:3},
+		legend: {position: 'none'},
         backgroundColor: '#1e1e2f'
 		};
 		
@@ -172,33 +179,30 @@
 <body onload="loadText()">
 <div class="content">
 	<center>
-	<h2 class="card" style="color:var(--grey);font-size:34px"><div>CHARGEMANAGER <a href="/settings?secret={{secret}}" class="uil uil-setting"></a></div></h2>
+	<h2 class="card" style="color:var(--grey);font-size:36px"><div>CHARGEMANAGER <a href="/settings?secret={{secret}}" class="uil uil-setting"></a></div></h2>
 	<div id="chart_div"></div>
-	<div style="padding:20px">CHARGING STRATEGY:</div>
+	<br>
 	<form action="/chargemode" method="POST" class="form-inline" id="chargemodeform">
-	<input class="checkbox-tools" type="radio" id="disabledcharging" name="chargemode" value="0" onchange='this.form.submit();' {{disabledcharging}}>
-	<label class="for-checkbox-tools" for="disabledcharging" id="disabledcharginglabel"><i class="uil uil-moon"></i>Disabled</label>
-	<input class="checkbox-tools" type="radio" id="slowcharging" name="chargemode" value="2" onchange='this.form.submit();' {{slowcharging}}>
-	<label class="for-checkbox-tools" for="slowcharging" id="slowcharginglabel"><i class="uil uil-square"></i>Slow</label>
-	<input class="checkbox-tools" type="radio" id="fastcharging" name="chargemode" value="1" onchange='this.form.submit();' {{fastcharging}}>
-	<label class="for-checkbox-tools" for="fastcharging" id="fastcharginglabel"><i class="uil uil-plane"></i>Fast</label>
-	<input class="checkbox-tools" type="radio" id="trackedcharging" name="chargemode" value="3" onchange='this.form.submit();' {{trackedcharging}}>
-	<label class="for-checkbox-tools" for="trackedcharging" id="trackedcharginglabel"><i class="uil uil-sun"></i>Tracked</label>
+		<input class="checkbox-tools" type="radio" id="disabledcharging" name="chargemode" value="0" onchange='this.form.submit();' {{disabledcharging}}>
+		<label class="for-checkbox-tools" for="disabledcharging" id="disabledcharginglabel"><i class="uil uil-moon"></i>Disabled</label>
+		<input class="checkbox-tools" type="radio" id="slowcharging" name="chargemode" value="2" onchange='this.form.submit();' {{slowcharging}}>
+		<label class="for-checkbox-tools" for="slowcharging" id="slowcharginglabel"><i class="uil uil-square"></i>Slow</label>
+		<input class="checkbox-tools" type="radio" id="fastcharging" name="chargemode" value="1" onchange='this.form.submit();' {{fastcharging}}>
+		<label class="for-checkbox-tools" for="fastcharging" id="fastcharginglabel"><i class="uil uil-plane"></i>Fast</label>
+		<input class="checkbox-tools" type="radio" id="trackedcharging" name="chargemode" value="3" onchange='this.form.submit();' {{trackedcharging}}>
+		<label class="for-checkbox-tools" for="trackedcharging" id="trackedcharginglabel"><i class="uil uil-sun"></i>Tracked</label>
 	</form>
 	<br><br>
-	<h2 class="card" style="color:var(--blue);font-size:34px">NRGKICK</h2>
-	<div>{{nrgkick[1]}} Watt</div>
+	<div id="production" style="color:#1c91c0;">Production: {{row[1]}} Watt</div>
+	<div id="consumption" style="color:#e2431e;">Consumption: {{row[2]}} Watt</div>
+	<div id="charging" style="color:#FE9A2E;">Charging: {{nrgkick[1]}} Watt</div>
 	<br>
-	<h2 class="card" style="color:red">SOLAREDGE</h2>
-    <div id="production">Production: {{row[1]}} Watt</div>
-	<div id="consumption">Consumption: {{row[2]}} Watt</div>
 	<div>Grid: {{row[3]}} Watt</div>
 	<div>Battery: {{row[4]}} Watt</div>
     <div>Battery SOC / SOH: {{row[6]}} % / {{row[7]}} %</div>
 	<div>Temperature: {{row[5]}} C</div>
 	<div id="inverterstatus">-</div>
 	</center>
-	<br><br>
 </div>
 </body>
 </html>
