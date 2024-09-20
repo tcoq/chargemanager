@@ -345,7 +345,7 @@ def main():
                 # count retries and only disable after 3 times unavailable to avoid short network interrupts
                 retryDisconnectCount += 1
                 
-                if (retryDisconnectCount == 3 or actualPower == -2):
+                if (retryDisconnectCount == 3):
                         chargemanagercommon.setNrgkickDisconnected()
                         chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
                         activeCharingSession = 0
