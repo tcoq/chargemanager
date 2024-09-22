@@ -25,7 +25,7 @@ NRGKICK_PASSWORD = 0
 MAX_PHASES = 0
 
 # IMPORTANT: please check the dependencies on this value if you change it 
-READ_WRITE_INTERVAL_SEC = 7
+READ_WRITE_INTERVAL_SEC = 10
 
 retryDisconnectCount = 0
 readChargeStatusFromNRGKick = 0
