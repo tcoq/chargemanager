@@ -87,12 +87,12 @@ def readModbus(client):
     ac_one_operation = readData(client,40083,2,"int32")
     ac = ctypes.c_int16(ac_one_operation & 0xffff).value
     ac_scale_factor = ctypes.c_int16((ac_one_operation >> 16) & 0xffff).value
-    ac_power = ac * math.pow(10, ac_scale_factor)
+    ac_power = int(ac * math.pow(10, ac_scale_factor))
 
     ac_to_from_grid_one_operation = readData(client,40206,5,"raw")
     ac_to_from_grid = ctypes.c_int16(ac_to_from_grid_one_operation.registers[0] & 0xffff).value
     ac_grid_scale_factor = ctypes.c_int16(ac_to_from_grid_one_operation.registers[4] & 0xffff).value
-    ac_power_to_from_grid  = ac_to_from_grid * math.pow(10, ac_grid_scale_factor)
+    ac_power_to_from_grid  = int(ac_to_from_grid * math.pow(10, ac_grid_scale_factor))
 
     dc_one_operation = readData(client,40100,2,"int32")
     dc = ctypes.c_int16(dc_one_operation & 0xffff).value 
