@@ -108,9 +108,9 @@ def readModbus(client):
     # calc house consumption
     house_consumption = ac_power - ac_power_to_from_grid
     # calculation of current pv production from solar panels
-    pv_prod = house_consumption + ac_power_to_from_grid + battery_power
+    pv_prod = ac_power + battery_power
     # calc available (free) power (overproduction)
-    available_power = ac_to_from_grid+battery_power
+    available_power = ac_power_to_from_grid + battery_power
     availablepowerrange = 0
     availablepowerrange = chargemanagercommon.getPowerRange(available_power)
 
@@ -141,7 +141,7 @@ def readModbus(client):
             else:             
                 availablepower_withoutcharging = available_power           
             cur = con.cursor()
-            data_sql = "INSERT INTO 'modbus' (timestamp,pvprod,houseconsumption,acpower,acpowertofromgrid,dcpower,availablepower_withoutcharging,availablepowerrange,temperature,status,batterypower,batterystatus,soc,soh) VALUES ('"+ str(timestamp) + "',"  + str(pv_prod) + "," + str(house_consumption) + "," + str(ac_power) + "," + str(ac_to_from_grid) + "," + str(dc_power) + "," + str(availablepower_withoutcharging) + "," + str(availablepowerrange) + "," + str(temp/100) + "," + str(status) + "," + str(battery_power) + "," + str(battery_status) + "," + str(soc) + "," + str(soh) + ")"
+            data_sql = "INSERT INTO 'modbus' (timestamp,pvprod,houseconsumption,acpower,acpowertofromgrid,dcpower,availablepower_withoutcharging,availablepowerrange,temperature,status,batterypower,batterystatus,soc,soh) VALUES ('"+ str(timestamp) + "',"  + str(pv_prod) + "," + str(house_consumption) + "," + str(ac_power) + "," + str(ac_power_to_from_grid) + "," + str(dc_power) + "," + str(availablepower_withoutcharging) + "," + str(availablepowerrange) + "," + str(temp/100) + "," + str(status) + "," + str(battery_power) + "," + str(battery_status) + "," + str(soc) + "," + str(soh) + ")"
             log.debug(data_sql)
             cur.execute(data_sql)
             con.commit()
