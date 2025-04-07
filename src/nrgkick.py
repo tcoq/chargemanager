@@ -285,6 +285,8 @@ def main():
                 else:
                     # tracked mode
                     chargePowerValue = chargemanagercommon.getCurrent(availablePowerRange)
+                    # always charge in tracked mode (at least with minCharge)
+                    chargingPossible = 1
                 
                 succesful = False
 
