@@ -282,11 +282,16 @@ def main():
                     # slow mode
                     chargePowerValue = 6
                     chargingPossible = 1
-                else:
+                elif (chargemode == chargemanagercommon.TRACKED_MODE):
                     # tracked mode
-                    chargePowerValue = chargemanagercommon.getCurrent(availablePowerRange)
                     # always charge in tracked mode (at least with minCharge)
+                    chargePowerValue = chargemanagercommon.getCurrent(availablePowerRange)
                     chargingPossible = 1
+                else:
+                    # reset power
+                    chargePowerValue = chargemanagercommon.getCurrent(availablePowerRange)
+                    # disable charging
+                    chargingPossible = 0
                 
                 succesful = False
 
