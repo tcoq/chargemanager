@@ -78,7 +78,7 @@ def getJSONForSolaredgeData():
 @server.route("/")
 def renderPage():
     row = None 
-    nrgkick = None 
+    wallboxes = None 
     controls = None
     secret = SECRET_KEY
 
@@ -95,8 +95,8 @@ def renderPage():
         cur.execute("SELECT timestamp,pvprod,houseconsumption,acpowertofromgrid,batterypower,temperature,soc,soh,status FROM modbus order by timestamp desc LIMIT 1")
         row = cur.fetchone()
 
-        cur.execute("SELECT connected,chargingpower,ischarging FROM nrgkick")
-        nrgkick = cur.fetchone()
+        cur.execute("SELECT max(connected),max(chargingpower),max(ischarging) FROM wallboxes")
+        wallboxes = cur.fetchone()
 
         cur.execute("SELECT chargemode,availablePowerRange,chargingPossible,cloudy,smartPlugStatus FROM controls")
         controls = cur.fetchone()
@@ -106,7 +106,7 @@ def renderPage():
     finally:
         con.close()
 
-    if row == None or nrgkick == None or controls == None:
+    if row == None or wallboxes == None or controls == None:
         return "No data" 
 
     chargemode = chargemanagercommon.getChargemode()
@@ -124,7 +124,7 @@ def renderPage():
     elif (chargemode == 3):
         trackedcharging = "checked"        
 
-    return render_template('index.html', row = row, trackedcharging = trackedcharging , fastcharging = fastcharging, slowcharging=slowcharging, controls=controls, nrgkick=nrgkick, disabledcharging=disabledcharging, secret=secret, tempdata=getJSONForSolaredgeData())
+    return render_template('index.html', row = row, trackedcharging = trackedcharging , fastcharging = fastcharging, slowcharging=slowcharging, controls=controls, wallboxes=wallboxes, disabledcharging=disabledcharging, secret=secret, tempdata=getJSONForSolaredgeData())
                
 @server.route("/chargemode", methods=['POST', 'GET'])
 def setChargemode():   
@@ -179,6 +179,8 @@ def saveForm():
         data[chargemanagercommon.MEASUREMENTURL]  = request.form[chargemanagercommon.MEASUREMENTURL]
         data[chargemanagercommon.SETTINGSURL]  = request.form[chargemanagercommon.SETTINGSURL]
         data[chargemanagercommon.CHARGERPASSWORD]  = request.form[chargemanagercommon.CHARGERPASSWORD]
+        data[chargemanagercommon.MQTTIP]  = request.form[chargemanagercommon.MQTTIP]
+        data[chargemanagercommon.PULSARWALLBOXTOPICNAME]  = request.form[chargemanagercommon.PULSARWALLBOXTOPICNAME]
         data[chargemanagercommon.CHARGINGPHASES]  = request.form[chargemanagercommon.CHARGINGPHASES]
         data[chargemanagercommon.WEBPORT]  = request.form[chargemanagercommon.WEBPORT]
         data[chargemanagercommon.SECRETKEY]  = request.form[chargemanagercommon.SECRETKEY]
@@ -197,7 +199,7 @@ def saveForm():
 
         # force to reload setting in all modules
         chargemanagercommon.SOLAREDGE_SETTINGS_DIRTY == True
-        chargemanagercommon.NRGKICK_SETTINGS_DIRTY == True
+        chargemanagercommon.WALLBOXES_SETTINGS_DIRTY == True
         chargemanagercommon.SMARTPLUG_SETTINGS_DIRTY == True
         chargemanagercommon.FRONTEND_SETTINGS_DIRTY == True
         chargemanagercommon.CHARGEMANAGER_SETTINGS_DIRTY == True

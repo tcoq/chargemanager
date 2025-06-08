@@ -109,7 +109,7 @@
 		}
 		document.getElementById('inverterstatus').innerHTML = inverterStatusText;
 		
-		var nrgKickConnectedStatus = {{nrgkick[0]}}
+		var nrgKickConnectedStatus = {{wallboxes[0]}}
 		var cloudy = {{controls[3]}}
 		
 		if (cloudy == 1) {
@@ -147,7 +147,7 @@
 			document.getElementById("disabledcharginglabel").innerHTML = "<i class='uil uil-moon'></i>Offline";			
 		}
 		
-		var nrgKickChargingStatus = {{nrgkick[2]}}
+		var nrgKickChargingStatus = {{wallboxes[2]}}
 
 		if (document.getElementById('trackedcharging').checked  == true) {
 			if (nrgKickChargingStatus == 1) {
@@ -195,7 +195,7 @@
 	<br><br>
 	<div id="production" style="color:#1c91c0;">Production: {{row[1]}} Watt</div>
 	<div id="consumption" style="color:#e2431e;">Consumption: {{row[2]}} Watt</div>
-	<div id="charging" style="color:#FE9A2E;">Charging: {{nrgkick[1]}} Watt</div>
+	<div id="charging" style="color:#FE9A2E;">Charging: {{wallboxes[1]}} Watt</div>
 	<br>
 	<div>Grid: {{row[3]}} Watt</div>
 	<div>Battery: {{row[4]}} Watt</div>

@@ -127,17 +127,17 @@ def readModbus(client):
 
     try:
         cur = con.cursor()
-        cur.execute("SELECT chargingpower FROM nrgkick")
-        nrgkick = cur.fetchone()
+        cur.execute("SELECT sum(chargingpower) FROM wallboxes")
+        wallboxes = cur.fetchone()
         cur.close()
-        if nrgkick == None:
-            log.error("NRGKick table is empty!")
+        if wallboxes == None:
+            log.error("Wallboxes table is empty!")
         else:
-            nrgkick_power = int(nrgkick[0])
+            wallboxes_power = int(wallboxes[0])
 
             # plausibility check: due to async read data nrg-kick can be read before house
-            if (house_consumption >= nrgkick_power):
-                availablepower_withoutcharging = available_power + nrgkick_power    
+            if (house_consumption >= wallboxes_power):
+                availablepower_withoutcharging = available_power + wallboxes_power    
             else:             
                 availablepower_withoutcharging = available_power           
             cur = con.cursor()

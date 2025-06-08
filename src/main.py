@@ -5,7 +5,7 @@
 # --------------------------------------------------------------------------- #
 import logging
 import solaredge
-import nrgkick
+import wallboxmanager
 import chargemanager
 import chargemanagercommon
 import smartplug
@@ -24,13 +24,13 @@ def main():
     chargemanagercommon.init()
 
     solaredgeThread = threading.Thread(target=solaredge.main)
-    nrgkickThread = threading.Thread(target=nrgkick.main)
+    wallboxesThread = threading.Thread(target=wallboxmanager.main)
     chargemanagerThread = threading.Thread(target=chargemanager.main)
     smartplugThread = threading.Thread(target=smartplug.main)
     frontendThread = threading.Thread(target=frontend.main)
 
     solaredgeThread.start()
-    nrgkickThread.start()
+    wallboxesThread.start()
     chargemanagerThread.start()
     smartplugThread.start()
     frontendThread.start()

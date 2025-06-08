@@ -23,6 +23,8 @@
 		chargemodeauto = document.forms["settingsForm"]["chargemodeauto"].valueAsNumber;
 		measurementsurl = document.forms["settingsForm"]["measurementsurl"].value;
 		settingsurl = document.forms["settingsForm"]["settingsurl"].value;
+		mqttip = document.forms["settingsForm"]["mqttip"].value;
+		pulsarwallboxtopicname = document.forms["settingsForm"]["pulsarwallboxtopicname"].value;
 		chargerpassword = document.forms["settingsForm"]["chargerpassword"].value;
 		chargingphases = document.forms["settingsForm"]["chargingphases"].valueAsNumber;
 		webport = document.forms["settingsForm"]["webport"].valueAsNumber;
@@ -97,6 +99,10 @@
 		}
 		if (validateIP(plugip) == false) {
 			document.getElementById('plugip').style.borderColor = "red";
+			validationError = true
+		}
+		if (validateIP(mqttip) == false) {
+			document.getElementById('mqttip').style.borderColor = "red";
 			validationError = true
 		}
 		if (Number.isInteger(plugonpower) == false || (plugonpower > 3900 || plugonpower < 0)) {
@@ -259,6 +265,16 @@
 		  <tr>
 			<td>Password</td>
 			<td><input type="text" id="chargerpassword" name="chargerpassword" value="{{settings['chargerpassword']}}" style="width: 100%"></td>
+		  </tr>
+			<td colspan="2"><br><center><h3 class="card" style="color:var(--green)">PULSAR WALLBOX</h3></center></td>
+		  </tr>
+		<tr>
+			<td>MQTT IP</td>
+			<td><input type="text" id="mqttip" name="mqttip" value="{{settings['mqttip']}}" style="width: 100%"></td>
+		  </tr>
+		  <tr>
+			<td>MQTT Topicname</td>
+			<td><input type="text" id="pulsarwallboxtopicname" name="pulsarwallboxtopicname" value="{{settings['pulsarwallboxtopicname']}}" style="width: 100%"></td>
 		  </tr>
 		  <tr>
 			<td colspan="2"><br><center><h3 class="card" style="color:#f0f0f0">WEB</h3></center></td>

@@ -166,8 +166,8 @@ def calcEfficientChargingStrategy():
     
     thisDayTime = datetime.now()
     minCharge = 0
-    # get min charge threshold based on PHASES configuration from properties file
-    phases = chargemanagercommon.getPhases()
+    # TODO: refactor to get the phase upon wallboxid
+    phases = chargemanagercommon.getPhases(1)
     if (phases == 1):
         minCharge = 1400
     elif (phases == 2):
@@ -199,8 +199,8 @@ def calcEfficientChargingStrategy():
     # 5 minutes / 300 seconds
     changeTimeSec = 300
 
-    log.debug("Current (set) available power range: " + str(newAvailablePowerRange) + " previous range:" + str(previousAvailablePowerRange) + " new range:" + str(newAvailablePowerRange) + " availablePowerRange:" + str(availablePowerRange) + " minCharge: " + str(minCharge) + " phase: " + str(chargemanagercommon.getPhases()))
-    log.debug("powerChangeCount: " + str(powerChangeCount) + " changeTimeSec:" + str(changeTimeSec) + " cloudy: " + str(cloudyConditions) + " currentBatteryPower: " + str(currentBatteryPower) + " chargingPossible: " + str(chargingPossible) + " soc: " + str(soc))
+    #log.info("Current (set) available power range: " + str(newAvailablePowerRange) + " previous range:" + str(previousAvailablePowerRange) + " new range:" + str(newAvailablePowerRange) + " availablePowerRange:" + str(availablePowerRange) + " minCharge: " + str(minCharge) + " phase: " + str(chargemanagercommon.getPhases(1)))
+    #log.info("powerChangeCount: " + str(powerChangeCount) + " changeTimeSec:" + str(changeTimeSec) + " cloudy: " + str(cloudyConditions) + " currentBatteryPower: " + str(currentBatteryPower) + " chargingPossible: " + str(chargingPossible) + " soc: " + str(soc))
 
     # check if battery consumption is very high (attention: currentBatteryPower has - sign during consumption and + sign during loading)
     if (currentBatteryPower < (BATTERY_MAX_CONSUMPTION * -1) and chargingPossible == 1):
@@ -325,7 +325,7 @@ def main():
             time.sleep(READ_INTERVAL_SEC)
             log.debug("sleeped " + str(READ_INTERVAL_SEC) + " seconds")
             try:
-                if (chargemanagercommon.isNrgkickConnected() == 1 and chargemanagercommon.getChargemode() != chargemanagercommon.DISABLED_MODE):
+                if (chargemanagercommon.isAnyWallboxConnected() == 1 and chargemanagercommon.getChargemode() != chargemanagercommon.DISABLED_MODE):
                     calcEfficientChargingStrategy()
                 else:
                     # reset toggle if there is no free power anymore and charging was disabled to avoid jumping back from manual mode to tracked

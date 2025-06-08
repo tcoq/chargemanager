@@ -24,8 +24,10 @@ BATTERYMAXCONSUMPTION = 'batterymaxconsumption'
 BATTERYMAXINPUT = 'batterymaxinput' 
 CHARGEMODEAUTO = 'chargemodeauto' 
 MEASUREMENTURL ='measurementsurl' 
-SETTINGSURL ='settingsurl' 
+SETTINGSURL ='settingsurl'
 CHARGERPASSWORD = 'chargerpassword' 
+PULSARWALLBOXTOPICNAME ='pulsarwallboxtopicname'
+MQTTIP = 'mqttip'
 CHARGINGPHASES = 'chargingphases' 
 WEBPORT = 'webport'
 SECRETKEY = 'secretkey' 
@@ -41,7 +43,7 @@ PLUGENABLED ='plugEnabled'
 ALLOWPLUGUSEHOUSEBATTERY ='allowPlugUseBattery'
 
 SOLAREDGE_SETTINGS_DIRTY = True
-NRGKICK_SETTINGS_DIRTY = True
+WALLBOXES_SETTINGS_DIRTY = True
 SMARTPLUG_SETTINGS_DIRTY = True
 FRONTEND_SETTINGS_DIRTY = True
 CHARGEMANAGER_SETTINGS_DIRTY = True
@@ -59,7 +61,7 @@ def init():
     if (databaseInitialized == False):
         initModbusTable()
         initControlsTable()
-        initNrgkicktable()
+        initWallboxestable()
         initChargelogTable()
         initSettingsTable()
         databaseInitialized == True
@@ -112,33 +114,16 @@ def saveSettings(data):
         con.close()
 
 #
-# Sets the current number of available phases at the charger
-# Possible values 1-3
-#
-def setPhases(value):
-    con = getDBConnection()
-    
-    try:
-        cur = con.cursor()
-        cur.execute("UPDATE nrgkick SET phases = " + str(value))
-        con.commit()
-        cur.close()
-    except:
-        log.error(traceback.format_exc()) 
-    finally:
-        con.close()
-
-#
-# Returns the current number of available phases by the charger
+# Returns the current number of available phases by the charger based on wallbox id
 # 
 # Returns: 1-3 or -1 for errors
 #
-def getPhases():
+def getPhases(id):
     con = getDBConnection()
     
     try:
         cur = con.cursor()
-        cur.execute("SELECT phases FROM nrgkick")
+        cur.execute("SELECT phases FROM wallboxes where id = " + str(id))
         chargemode = cur.fetchone()
         cur.close()
     except:
@@ -147,7 +132,7 @@ def getPhases():
     finally:
         con.close()
 
-    if (int(chargemode[0]) == None):
+    if (chargemode is None or len(chargemode) == 0):
         return -1
     return int(chargemode[0])
 #
@@ -214,9 +199,9 @@ def getPowerRange(currentAvailablePower):
 #
 # Calculating the right power current for a given powerrange
 #
-def getCurrent(availablePowerRange):
+def getCurrent(availablePowerRange,id):
     chargePowerValue = 6
-    if (getPhases() == 1):
+    if (getPhases(id) == 1):
         if (availablePowerRange == 1400):
             chargePowerValue = 6 # 1380 watt
         elif (availablePowerRange == 1700):
@@ -237,7 +222,7 @@ def getCurrent(availablePowerRange):
             chargePowerValue = 14 # 3220 watt
         elif (availablePowerRange >= 3500): 
             chargePowerValue = 15 # 3450 watt
-    if (getPhases() == 2):
+    if (getPhases(id) == 2):
         if (availablePowerRange == 2800):
             chargePowerValue = 6 # 2760 watt
         elif (availablePowerRange == 3300):
@@ -258,7 +243,7 @@ def getCurrent(availablePowerRange):
             chargePowerValue = 14 # 6440 watt
         elif (availablePowerRange >= 6950): 
             chargePowerValue = 15 # 6900 watt
-    elif (getPhases() == 3):
+    elif (getPhases(id) == 3):
         if (availablePowerRange == 4500):
             chargePowerValue = 6 # 4140 watt
         elif (availablePowerRange == 5000):
@@ -304,7 +289,7 @@ def getChargemode():
     return int(chargemode[0])
 
 #
-# Set the actual set chargemode
+# Set the actual set chargemode based on wallbox id
 # 0 = disabled
 # 1 = fast
 # 2 = slow
@@ -328,12 +313,12 @@ def setChargemode(chargemode):
     finally:
         con.close()
 
-def setNrgkickDisconnected():
+def setWallboxDisconnected(id):
     con = getDBConnection()
     
     try:
         cur = con.cursor()
-        cur.execute("UPDATE nrgkick SET connected = 0, chargingpower = 0")
+        cur.execute("UPDATE wallboxes SET connected = 0, chargingpower = 0 where id = " + str(id))
         con.commit()
         cur.close()
     except:
@@ -342,16 +327,16 @@ def setNrgkickDisconnected():
         con.close()
 
 #
-# Returns connected status
-# 1 = NRGKick is connected
-# 0 = NRGKick is not connected
-def isNrgkickConnected():
+# Returns connected status based on wallbox id
+# 1 = wallbox is connected
+# 0 = wallbox is not connected
+def isAnyWallboxConnected():
     con = getDBConnection()
     
     status = 0
     try:
         cur = con.cursor()
-        cur.execute("SELECT connected FROM nrgkick")
+        cur.execute("SELECT max(connected) FROM wallboxes")
         val = cur.fetchone()
         cur.close()
         status = int((val[0]))
@@ -366,16 +351,16 @@ def isNrgkickConnected():
         return 0
 
 #
-# Returns charging status
+# Returns charging status based on wallbox id
 # 1> = Current NRGKick power in watt
 # 0 = NRGKick is not charging
-def isNrgkickCharging():
+def isWallboxCharging(id):
     con = getDBConnection()
     
     chargingpower = 0
     try:
         cur = con.cursor()
-        cur.execute("SELECT chargingpower FROM nrgkick")
+        cur.execute("SELECT chargingpower FROM wallboxes where id = " + str(id))
         chargingpower = cur.fetchone()
         cur.close()
     except:
@@ -504,11 +489,13 @@ def initModbusTable():
     finally:
         con.close()
 
-def initNrgkicktable():
+def initWallboxestable():
     con = getDBConnection()
 
-    nrgkick_sql = """
-    CREATE TABLE IF NOT EXISTS nrgkick (
+    wallboxes_sql = """
+    CREATE TABLE IF NOT EXISTS wallboxes (
+    id integer NOT NULL,
+    type integer NOT NULL,
     timestamp TEXT NOT NULL,
     chargingpower integer NOT NULL,
     temperature REAL NOT NULL,
@@ -516,22 +503,22 @@ def initNrgkicktable():
     connected integer NOT NULL,
     ischarging integer NOT NULL,
     chargingcurrent REAL NOT NULL,
-    chargingcurrentmin REAL NOT NULL,
-    chargingcurrentmax REAL NOT NULL,
     phases integer NOT NULL)"""
     try:
         cur = con.cursor()
-        cur.execute(nrgkick_sql)
+        cur.execute(wallboxes_sql)
         con.commit()
         cur.close()
         cur = con.cursor()
         # check if there is already data
-        cur.execute("SELECT * FROM nrgkick")
-        nrgkick = cur.fetchone()
+        cur.execute("SELECT * FROM wallboxes")
+        wallboxes = cur.fetchone()
 
-        if nrgkick == None:
-            nrg_insert_sql = """
-            INSERT INTO 'nrgkick' (
+        if wallboxes == None:
+            wallboxes_insert_sql = """
+            INSERT INTO 'wallboxes' (
+            id,
+            type,
             timestamp,
             chargingpower,
             temperature,
@@ -539,15 +526,13 @@ def initNrgkicktable():
             connected,
             ischarging,
             chargingcurrent,
-            chargingcurrentmin,
-            chargingcurrentmax,
-            phases) VALUES (0,0,0,0,0,0,0,0,0,1)
+            phases) VALUES (1,1,0,0,0,0,0,0,0,1),(2,2,0,0,0,0,0,0,0,1)
             """
             cur = con.cursor()
-            cur.execute(nrg_insert_sql)
+            cur.execute(wallboxes_insert_sql)
             con.commit()
             cur.close()
-            log.debug(nrg_insert_sql)
+            log.debug(wallboxes_insert_sql)
     except:
         log.error(traceback.format_exc()) 
     finally:
@@ -622,6 +607,8 @@ def initSettingsTable():
         measurementsurl TEXT NOT NULL,
         settingsurl TEXT NOT NULL,
         chargerpassword TEXT NOT NULL,
+        pulsarwallboxtopicname TEXT NOT NULL,
+        mqttip TEXT NOT NULL,
         chargingphases integer NOT NULL,
         webport integer NOT NULL,
         secretkey TEXT NOT NULL,
@@ -659,6 +646,8 @@ def initSettingsTable():
             measurementsurl,
             settingsurl,
             chargerpassword,
+            pulsarwallboxtopicname,
+            mqttip,
             chargingphases,
             webport,
             secretkey,
@@ -673,27 +662,29 @@ def initSettingsTable():
             plugEnabled,
             allowPlugUseBattery) 
             VALUES (
-            '192.168.xx.xx',
+            '192.168.178.xx',
             1502,
             9400,
             60,
             2600,
             4950,
             1,
-            'http://192.168.xx.xx/api/measurements/04:91:62:xx:xx:xx',
-            'http://192.168.xx.xx/api/settings/04:91:62:xx:xx:xx',
-            '0000',
+            'http://192.168.178.xx/api/measurements/04:91:62:76:xx:xx',
+            'http://192.168.178.xx/api/settings/04:91:62:76:xx:xx',
+            '1234',
+            'wallbox_xxxxx',
+            '192.168.178.xx',
             2,
             5000,
-            '2ASDCX34FVAY50',
+            '11111',
             0,
-            '192.168.xx.xx',
-            2050,
-            '11:00',
-            '11:00',
-            '14:00',
-            '16:00',
-            55,
+            '192.168.178.xx',
+            2100,
+            '13:55',
+            '16:15',
+            '13:50',
+            '16:15',
+            70,
             0,
             1
             )
