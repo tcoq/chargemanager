@@ -1,6 +1,6 @@
 # CHARGEMANAGER PROJECT 
 ## Introduction
-Welcome to the chargemanager project, which implements a electric car charging manager via software that controls a NRGKICK charger to make optimal use of the charging power according to the available excess production of a Solaredge solar system without drawing energy from the grid. If not charing this software can also activate a TP-Link smart plug to control additional devices like a e-heating rod.
+Welcome to the chargemanager project, which implements a electric car charging manager via software that controls a NRGKICK or PULSAR PLUS charger to make optimal use of the charging power according to the available excess production of a Solaredge solar system without drawing energy from the grid. If not charing this software can also activate a TP-Link smart plug to control additional devices like a e-heating rod.
 
 The advantages of this charging manager are as follows:
 
@@ -15,15 +15,16 @@ The advantages of this charging manager are as follows:
 * Auto detection for disabling phases via fuses
 * Token authentification for public deployments with brute force protection available
 * All values of the Solaredge inverter and the NRGKICK are stored in a SQLite database and are available for other evaluations
-* **NEW!**: TP-Link smart plug support (HS110 / HS100) 
-* **NEW!**: Settings web form 
+* TP-Link smart plug support (HS110 / HS100) 
+* Settings web form 
+* **NEW!**: Wallbox pulsar plus support via MQTT
 
 ![picture alt](https://github.com/tcoq/chargemanager/blob/main/chargemanager.jpg?raw=true "Main screen")
 
 ![picture alt](https://github.com/tcoq/chargemanager/blob/main/settings.jpg?raw=true "Seccings screen")
 
 ## Requirements
-The chargemanger was tested with Storedge SE10K-RWS and BYD LVS 8.0 (production year 2020) and NRGKICK + Connect (1st version, production year 2020, Connect is a extra bluetooth hardware) and VW ID.4 (2 phase charging). Other Solaredge inverters may have differences in the modbus protocol, which are not covered here. Individual modbus adjustments must be made by yourself. To use the chargemanger you only need a small linux server like raspberry or jetson nano with network access to Solaredge inverter and NRGKICK.
+The chargemanger was tested with Storedge SE10K-RWS and BYD LVS 8.0 (production year 2020) and NRGKICK + Connect (1st version, production year 2020, Connect is a extra bluetooth hardware), Wallbox Pulsar Plus and VW ID.3 ID.4 and ID.Buzz. Other Solaredge inverters may have differences in the modbus protocol, which are not covered here. Individual modbus adjustments must be made by yourself. To use the chargemanger you only need a small linux server like raspberry or jetson nano with network access to Solaredge inverter and NRGKICK or PULSAR PLUS.
 
 ## Installation
 
@@ -90,6 +91,11 @@ Data url of nrgkick in this format http://192.168.178.xx/api/measurements/04:91:
 Settings url of nrgkick in this format http://192.168.178.xx/api/settings/04:91:62:76:XX:XX
 ###### **NRGKICK / Password**
 NRGKICK password (default 0000)
+
+###### **PULSAR WALLBOX / MQTT IP**	
+IP adress of your MQTT server
+###### **PULSAR WALLBOX / TOPIC NAME**	
+Name of your Pulsar Plus MQTT topic
 
 ###### **WEB / UI port**	
 Port on which UI should start
