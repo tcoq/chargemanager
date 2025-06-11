@@ -199,7 +199,8 @@ def saveForm():
 
         # force to reload setting in all modules
         chargemanagercommon.SOLAREDGE_SETTINGS_DIRTY == True
-        chargemanagercommon.WALLBOXES_SETTINGS_DIRTY == True
+        chargemanagercommon.NRGKICK_SETTINGS_DIRTY == True
+        chargemanagercommon.PULSAR_SETTINGS_DIRTY == True
         chargemanagercommon.SMARTPLUG_SETTINGS_DIRTY == True
         chargemanagercommon.FRONTEND_SETTINGS_DIRTY == True
         chargemanagercommon.CHARGEMANAGER_SETTINGS_DIRTY == True

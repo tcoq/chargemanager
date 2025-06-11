@@ -28,12 +28,12 @@ class NrgkickController(WallboxBase):
         self.read_charge_value = 0
 
     def readSettings(self):
-        if chargemanagercommon.WALLBOXES_SETTINGS_DIRTY:
+        if chargemanagercommon.NRGKICK_SETTINGS_DIRTY:
             self.measurements_url = chargemanagercommon.getSetting(chargemanagercommon.MEASUREMENTURL)
             self.settings_url = chargemanagercommon.getSetting(chargemanagercommon.SETTINGSURL)
             self.password = chargemanagercommon.getSetting(chargemanagercommon.CHARGERPASSWORD)
             self.max_phases = chargemanagercommon.getSetting(chargemanagercommon.CHARGINGPHASES)
-            chargemanagercommon.WALLBOXES_SETTINGS_DIRTY = False
+            chargemanagercommon.NRGKICK_SETTINGS_DIRTY = False
 
     def setCharging(self, currentValue, startCharging):
         
@@ -189,7 +189,7 @@ class NrgkickController(WallboxBase):
                 self.available = chargemanagercommon.boolToInt(settings['Info']['Connected'])
                 ischarging = chargemanagercommon.boolToInt(settings['Values']['ChargingStatus']['Charging'])
                 self.charingLevel = int(settings['Values']['ChargingCurrent']['Value'])
-                
+
             except:
                 log.error("Problems reading data from nrgkick!")
                 log.error(traceback.format_exc())

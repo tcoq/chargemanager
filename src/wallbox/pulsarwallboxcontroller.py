@@ -41,11 +41,11 @@ class PulsarWallboxController(WallboxBase):
         self.read_charge_value = 0
 
     def readSettings(self):
-        if (chargemanagercommon.WALLBOXES_SETTINGS_DIRTY):
+        if (chargemanagercommon.PULSAR_SETTINGS_DIRTY):
            self.mqttip = str(chargemanagercommon.getSetting(chargemanagercommon.MQTTIP))
            self.topicname = str(chargemanagercommon.getSetting(chargemanagercommon.PULSARWALLBOXTOPICNAME))
            self.max_phases = chargemanagercommon.getSetting(chargemanagercommon.CHARGINGPHASES)
-           chargemanagercommon.WALLBOXES_SETTINGS_DIRTY = False
+           chargemanagercommon.PULSAR_SETTINGS_DIRTY = False
 
     def setCharging(self, currentValue, startCharging):
         if currentValue < 6 or currentValue > 16:
@@ -53,7 +53,7 @@ class PulsarWallboxController(WallboxBase):
             return {"errorcode": 1}
         try:
 
-            client = mqtt.Client()  # Für neue paho-mqtt-Versionen
+            client = mqtt.Client() 
             client.connect(self.mqttip, 1883, 60)
             
             client.publish(self.topicname + "/charging_enable/set", str(chargemanagercommon.boolToInt(startCharging)))
@@ -107,7 +107,7 @@ class PulsarWallboxController(WallboxBase):
         try:
             def on_connect(client, userdata, flags, rc):
                 if rc != 0:
-                    log.error(f"MQTT-Verbindung fehlgeschlagen mit Code {rc}")
+                    log.error(f"MQTT-connection not possible code: {rc}")
 
             def on_message(client, userdata, msg):
                 topic = msg.topic
