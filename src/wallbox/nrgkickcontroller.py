@@ -17,11 +17,6 @@ class NrgkickController(WallboxBase):
     activeChargingSession = False
     available = -1
 
-    def boolToInt(self, input):
-        if str(input).casefold() == 'true':
-            return 1
-        return 0
-
     def __init__(self):
         self.measurements_url = None
         self.settings_url = None
@@ -191,8 +186,8 @@ class NrgkickController(WallboxBase):
             
             try:
                 errorcode = settings['Info']['ErrorCodes'][0]
-                self.available = self.boolToInt(settings['Info']['Connected'])
-                ischarging = self.boolToInt(settings['Values']['ChargingStatus']['Charging'])
+                self.available = chargemanagercommon.boolToInt(settings['Info']['Connected'])
+                ischarging = chargemanagercommon.boolToInt(settings['Values']['ChargingStatus']['Charging'])
                 self.charingLevel = int(settings['Values']['ChargingCurrent']['Value'])
             except:
                 log.error("Problems reading data from nrgkick!")

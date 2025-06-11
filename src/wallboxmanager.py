@@ -139,7 +139,7 @@ def main():
                         chargingPossible = 1
                     else:
                         # tracked mode
-                        chargePowerValue = chargemanagercommon.getCurrent(availablePowerRange,1)
+                        chargePowerValue = chargemanagercommon.getCurrent(availablePowerRange,device.getID())
                     
                     succesful = False
 

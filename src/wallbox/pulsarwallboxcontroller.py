@@ -56,14 +56,14 @@ class PulsarWallboxController(WallboxBase):
             client = mqtt.Client()  # Für neue paho-mqtt-Versionen
             client.connect(self.mqttip, 1883, 60)
             
-            # log.info("Publish new charge values: " + str(chargemode) + " " +  str(currentValue))
-            client.publish(self.topicname + "/charging_enable/set", str(startCharging))
+            client.publish(self.topicname + "/charging_enable/set", str(chargemanagercommon.boolToInt(startCharging)))
             client.publish(self.topicname + "/max_charging_current/set", str(currentValue))
+            log.info("Publish new charge values: " + str(chargemanagercommon.boolToInt(startCharging)) + " (startCharing) " +  str(currentValue) + " (currentValue)")
 
             client.loop_start()
             
             # we need to wait a while until we get the messages...
-            timeout = 2
+            timeout = 3
             start = time.time()
             while time.time() - start < timeout:
                 time.sleep(0.1)
