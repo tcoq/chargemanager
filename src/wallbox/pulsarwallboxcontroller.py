@@ -64,7 +64,6 @@ class PulsarWallboxController(WallboxBase):
             
             # we need to wait a while until we get the messages...
             timeout = 3
-            
             start = time.time()
             while time.time() - start < timeout:
                 time.sleep(0.1)

@@ -189,6 +189,7 @@ class NrgkickController(WallboxBase):
                 self.available = chargemanagercommon.boolToInt(settings['Info']['Connected'])
                 ischarging = chargemanagercommon.boolToInt(settings['Values']['ChargingStatus']['Charging'])
                 self.charingLevel = int(settings['Values']['ChargingCurrent']['Value'])
+                
             except:
                 log.error("Problems reading data from nrgkick!")
                 log.error(traceback.format_exc())
