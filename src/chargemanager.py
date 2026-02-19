@@ -42,7 +42,7 @@ def readSettings():
         # ... tested on 9400 watt system with std_dev_threshold of 585, which results in divisor of 16
         STD_DEV_THRESHOLD = int(chargemanagercommon.getSetting(chargemanagercommon.PVPEAKPOWER)) / 16
         CHARGEMODE_AUTO = int(chargemanagercommon.getSetting(chargemanagercommon.CHARGEMODEAUTO))
-        chargemanagercommon.CHARGEMANAGER_SETTINGS_DIRTY == False
+        chargemanagercommon.CHARGEMANAGER_SETTINGS_DIRTY = False
 #
 # Method checks the standard derivation of the solar production of the last 15 minutes
 # returns :
@@ -243,7 +243,7 @@ def calcEfficientChargingStrategy():
 
         # automatically switch from SLOW to TRACKED charge mode if CHARGEMODE_AUTO is enabled 
         # and toggleToTrackedMode == True which is used to only change chargemode once in one charging-session 
-        # (currentAvailablePower) >= minCharge + 400 = use a little bit more min power to avoid falling back to slow charing 
+        # (currentAvailablePower) >= minCharge + 400 = use a little bit more min power to avoid falling back to slow charging 
         if (toggleToTrackedMode == True and 
             CHARGEMODE_AUTO == 1 and
             chargingPossible == 1 and 

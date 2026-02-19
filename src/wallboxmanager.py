@@ -91,18 +91,26 @@ def main():
             for device in devices:
 
                 deviceDict = device.readData()
-                actualPower = int(deviceDict['chargingpower'])
                 saveWallboxData(deviceDict,device.getID())
-                #log.info(str(device.getID()) + " " + str(device.isAvailable()) + " " + str(device.isCharging()) + " " + str(device.isActiveCharingSession()))
 
-                # check if nrgkick is available / -1 indicates that nrgkick is offline
-                if (device.isAvailable()):
-                    # log.info("Wallbox ID " + str(device.getID()) + ": " + str(actualPower) + " (Watt), chargingPossible:" + str(chargingPossible) + " isavailable: " + str(device.isAvailable()) + " activeSession:" + str(device.isActiveCharingSession()))
-                    # NRGKick pluged in currently, there was no charge-session before...
-                    if (chargemode == chargemanagercommon.DISABLED_MODE and (actualPower >= 1 or device.isCharging()) and device.isActiveCharingSession() == False):
+                # if a wallbox is charging lock others for to avoid conflicts during control (only controll one by time)....
+                if (device.isCharging()):
+                    for lockeddevices in devices:
+                        if lockeddevices.getID() != device.getID():
+                            lockeddevices.set_locked(True)
+                        else:
+                            lockeddevices.set_locked(False)
+                #log.info(str(device.getID()) + " " + str(device.isAvailable()) + " " + str(device.isCharging()) + " " + str(device.isActiveChargingSession()) + " " + str(device.is_locked()))
+
+                # check if wallbox is available and not locked
+                if (device.isAvailable() and device.is_locked() == False):
+                                       
+                    # log.info("Wallbox ID " + str(device.getID()) + ": " + str(actualPower) + " (Watt), chargingPossible:" + str(chargingPossible) + " isavailable: " + str(device.isAvailable()) + " activeSession:" + str(device.isActiveChargingSession()))
+                    # wallbox pluged in currently, there was no charge-session before...
+                    if (chargemode == chargemanagercommon.DISABLED_MODE and device.isCharging() and device.isActiveChargingSession() == False):
                         chargemode = chargemanagercommon.SLOW_MODE
                         chargemanagercommon.setChargemode(chargemode)
-                        device.setActiveCharingSession(True)
+                        device.setActiveChargingSession(True)
                     
                     con = chargemanagercommon.getDBConnection()              
                     
@@ -127,7 +135,7 @@ def main():
                     if (chargemode == chargemanagercommon.DISABLED_MODE):
                         # disabled mode
                         # set to current value to avoid to send a change event to nrgkick
-                        chargePowerValue = device.getCharingLevel()
+                        chargePowerValue = device.getChargingLevel()
                         chargingPossible = 0
                     if (chargemode == chargemanagercommon.FAST_MODE):
                         # fast mode
@@ -144,35 +152,33 @@ def main():
                     succesful = False
 
                     # check if NRG Kick status differs from target status
-                    if (device.getCharingLevel() != chargePowerValue or device.isCharging() != chargingPossible):
-                        #log.info("DEBUG: actualPower:" + str(actualPower) + ",  retryDisconnectCount: " + str(retryDisconnectCount) + ",  readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + ",  readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + ", chargemode: " + str(chargemode) + ", chargingPossible: " + str(chargingPossible) + ", chargePowerValue:" + str(chargePowerValue))
+                    if (device.getChargingLevel() != chargePowerValue or device.isCharging() != chargingPossible):
+                        log.info("cloudy:" + str(chargemanagercommon.getCloudy()) + " availablePowerRange:" + str(availablePowerRange) +  ", chargemode: " + str(chargemode) + ", chargingPossible: " + str(chargingPossible) + ", chargePowerValue:" + str(chargePowerValue))
                         
                         for x in range(3):
                             if (chargingPossible == 1):
                                 device.setCharging(chargePowerValue,True)
                             else:
                                 device.setCharging(chargePowerValue,False)
-                            log.info("Try to set start charging to: " + str(chargingPossible) + " and charge power value to: " + str(chargePowerValue) + " (A) Retry-Count: " + str(x))
+                            log.info("Try to set start charging to: " + str(chargingPossible) + " and charge power value to: " + str(chargePowerValue) + " (A) Retry-Count: " + str(x) + " wallboxid:" + str(device.getID()))
                             
                             # wait for nrg and car sync... this could take a while  
                             time.sleep(13)
 
                             deviceDict = device.readData()
                             saveWallboxData(deviceDict,device.getID())
-
-                            actualPower = int(deviceDict['chargingpower'])
                             
-                            # log.info("Read actual charging power for Wallbox ID " + str(device.getID()) + ": " + str(actualPower) + " (Watt), chargingPossible:" + str(chargingPossible))
+                            log.info("Read actual charging power for Wallbox ID " + str(device.getID()) + ": " + str(int(deviceDict['chargingpower'])) + " (Watt), chargingPossible:" + str(chargingPossible) + " isCharging:" + str(device.isCharging()))
 
-                            if ((actualPower > 0 and chargingPossible == 1) or (actualPower == 0 and chargingPossible == 0)): 
+                            if ((device.isCharging() and chargingPossible == 1) or (device.isCharging() == False and chargingPossible == 0)): 
                                 succesful = True
                                 # reset chargingSession
                                 if (chargingPossible == 1):
-                                    log.info("Set charge power to: " + str(actualPower) + " (watt), Wallbox ID: " + str(device.getID()) + ", Retry-Count: " + str(x))
-                                    device.setActiveCharingSession(True)
+                                    log.info("Set charge power to: " + str(int(deviceDict['chargingpower'])) + " (watt), Wallbox ID: " + str(device.getID()) + ", Retry-Count: " + str(x))
+                                    device.setActiveChargingSession(True)
                                 else:
                                     log.info("Stop charging now. Wallbox ID: " + str(device.getID()) + ", Retry-Count: " + str(x))
-                                    device.setActiveCharingSession(False)
+                                    device.setActiveChargingSession(False)
                                 break
                         if (succesful == False):
 
@@ -185,11 +191,11 @@ def main():
                             if (overallStatus == False):
                                 # if it was not succesful to start charging disable charging
                                 log.info("Disabled charging. Wallbox: " + str(device.getID()) + " Car might be full")
-                                log.debug("Set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " device.isCharging(): " + str(device.isCharging()) + " device.getCharingLevel(): " + str(device.getCharingLevel()) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange) + " actualPower:" + str(actualPower))
+                                log.debug("Set start charging to: " + str(chargingPossible) + " and charge power to: " + str(chargePowerValue) + " (watt) failed! Retry-Count: " + str(x) + " device.isCharging(): " + str(device.isCharging()) + " device.getChargingLevel(): " + str(device.getChargingLevel()) + " chargePowerValue: " + str(chargePowerValue) + " availablePowerRange: " + str(availablePowerRange) + " actualPower:" + str(int(deviceDict['chargingpower'])))
                                 if (chargemode != chargemanagercommon.DISABLED_MODE):
                                     chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
                                     nrgkick.setCharging(chargePowerValue,False)
-                                    device.setActiveCharingSession(False)
+                                    device.setActiveChargingSession(False)
                                     # wait 10 seconds to give kick a chance to switch to new instruction
                                     time.sleep(10)
                     # write into charging log
@@ -200,7 +206,7 @@ def main():
                         timestamp = datetime.now(tz)
                         # TO-DO REFACTORING: 
                         # chargingPossible is a problem in this condition if car is full and sun is shining / need to think about a better way for this tracking
-                        cur.execute("INSERT INTO 'chargelog' (timestamp,currentChargingPower,chargingPossible) VALUES ('"+ str(timestamp) + "',"  + str(actualPower) + "," + str(chargingPossible) + ")")
+                        cur.execute("INSERT INTO 'chargelog' (timestamp,currentChargingPower,chargingPossible) VALUES ('"+ str(timestamp) + "',"  + str(int(deviceDict['chargingpower'])) + "," + str(chargingPossible) + ")")
                         con.commit()
                         cur.close()
                     except:
@@ -215,11 +221,11 @@ def main():
                     device.setRetryCount(count)
                     
                     if (device.getRetryCount() == 3):
-                            device.setActiveCharingSession(False)
-                            # check if any other wallbox is charging or available
+                            device.setActiveChargingSession(False)
+                            # check if any other wallbox is charging
                             overallStatus = False
                             for deviceSecond in devices:
-                                if (deviceSecond.isCharging() or deviceSecond.isAvailable()):
+                                if (deviceSecond.isCharging()):
                                     overallStatus = True
 
                             if (overallStatus == False):
@@ -228,9 +234,12 @@ def main():
                                     chargemanagercommon.setWallboxDisconnected(device.getID())
 
                                     chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
+                                    # unlock all devices
+                                    for lockeddevices in devices:
+                                        device.set_locked(False)
                                     # all wallboxes are not charging...wait extra times to reduce network traffic
                                     time.sleep(4)
-                                    log.info("No wallbox is charging any more, set it to disabled! ActualPower: " + str(actualPower) + ",retryDisconnectCount:" +  str(device.getRetryCount()))
+                                    log.info("No wallbox is charging any more, set it to disabled! ActualPower: " + str(int(deviceDict['chargingpower'])) + ",retryDisconnectCount:" +  str(device.getRetryCount()))
                             else:
                                 # repeate until all wallboxes are offline
                                 device.setRetryCount(2) # old value + increment
@@ -239,7 +248,7 @@ def main():
                             # do not repeate disable mode again and again... 
                             device.setRetryCount(4) # avoid overloading counter and 
                             time.sleep(2)
-                            #log.info("_DEBUG: actualPower:" + str(actualPower) + ",  retryDisconnectCount: " + str(retryDisconnectCount) + ",  readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + ",  readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + ", chargemode: " + str(chargemode) + ", chargingPossible: " + str(chargingPossible) + ", chargePowerValue:" + str(chargePowerValue) + ", activeCharingSession:" + str(activeCharingSession))               
+                            #log.info("_DEBUG: actualPower:" + str(actualPower) + ",  retryDisconnectCount: " + str(retryDisconnectCount) + ",  readChargeStatusFromNRGKick: " + str(readChargeStatusFromNRGKick) + ",  readChargeValueFromNRGKick: " + str(readChargeValueFromNRGKick) + ", chargemode: " + str(chargemode) + ", chargingPossible: " + str(chargingPossible) + ", chargePowerValue:" + str(chargePowerValue) + ", activeChargingSession:" + str(activeChargingSession))               
                 time.sleep(READ_WRITE_INTERVAL_SEC)
             
         except KeyboardInterrupt:

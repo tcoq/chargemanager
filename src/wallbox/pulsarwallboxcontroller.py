@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 class PulsarWallboxController(WallboxBase):
 
     ID = 2
-    lastCharingLevel = 6
+    lastChargingLevel = 6
     chargingStatus = False
     available = False
     retryCount = 4
@@ -20,6 +20,7 @@ class PulsarWallboxController(WallboxBase):
     l1 = 0
     l2 = 0
     l3 = 0
+    locked = False
 
     received_values = {
     "chargingpower": 0,
@@ -58,7 +59,7 @@ class PulsarWallboxController(WallboxBase):
             
             client.publish(self.topicname + "/charging_enable/set", str(chargemanagercommon.boolToInt(startCharging)))
             client.publish(self.topicname + "/max_charging_current/set", str(currentValue))
-            log.info("Publish new charge values: " + str(chargemanagercommon.boolToInt(startCharging)) + " (startCharing) " +  str(currentValue) + " (currentValue)")
+            #log.info("Publish new charge values: " + str(chargemanagercommon.boolToInt(startCharging)) + " (startCharging) " +  str(currentValue) + " (currentValue)")
 
             client.loop_start()
             
@@ -82,8 +83,8 @@ class PulsarWallboxController(WallboxBase):
     def isCharging(self):
         return self.chargingStatus
 
-    def getCharingLevel(self):
-        return self.lastCharingLevel
+    def getChargingLevel(self):
+        return self.lastChargingLevel
 
     def getRetryCount(self):
         return self.retryCount
@@ -91,13 +92,20 @@ class PulsarWallboxController(WallboxBase):
     def setRetryCount(self, count: int): 
         self.retryCount = count
 
-    def isActiveCharingSession(self):
+    def isActiveChargingSession(self):
         return self.activeChargingSession
 
-    def setActiveCharingSession(self, status: bool): 
+    def setActiveChargingSession(self, status: bool): 
         self.activeChargingSession = status
 
+    def is_locked(self):
+        return self.locked
+        
+    def set_locked(self, status: bool): 
+        self.locked = status
+
     def readData(self):
+        self.readSettings()
         return self.read_wallbox_status()
 
     def isAvailable(self):
@@ -129,7 +137,7 @@ class PulsarWallboxController(WallboxBase):
                         self.available = True
                 elif topic == self.topicname + "/max_charging_current/state":
                     self.received_values["chargingcurrent"] = int(payload)
-                    self.lastCharingLevel = int(payload)
+                    self.lastChargingLevel = int(payload)
                 elif topic == self.topicname + "/charging_power_l1/state":
                     self.l1 = int(float(payload))
                     if (self.l1 > 1): self.l1 = 230
@@ -148,12 +156,15 @@ class PulsarWallboxController(WallboxBase):
                 totalVoltage = int(self.l1) + int(self.l2) + int(self.l3)
                 # default
                 phases = 2
-                if (totalVoltage > 600 and self.max_phases == 3):
+                if (totalVoltage > 600):
                     phases = 3
                 elif (totalVoltage > 400):
                     phases = 2
                 elif (totalVoltage > 200):
                     phases = 1
+                # limit phases if set in config
+                phases = min(phases,self.max_phases)
+                
                 self.received_values["phases"] = int(phases)
 
             client = mqtt.Client()  # Für neue paho-mqtt-Versionen

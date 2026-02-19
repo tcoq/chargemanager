@@ -39,7 +39,7 @@ class WallboxBase(ABC):
         pass
 
     @abstractmethod
-    def getCharingLevel(self) -> int:
+    def getChargingLevel(self) -> int:
         """
         Returns the actual charging level.
         """
@@ -60,16 +60,30 @@ class WallboxBase(ABC):
         pass
 
     @abstractmethod
-    def isActiveCharingSession(self) -> bool: 
+    def isActiveChargingSession(self) -> bool: 
         """
         Returns true if there is a active charging session.
         """
         pass
 
     @abstractmethod
-    def setActiveCharingSession(self, status: bool): 
+    def setActiveChargingSession(self, status: bool): 
         """
         Sets the status of charging session. True = active
+        """
+        pass
+
+    @abstractmethod
+    def is_locked(self) -> int:
+        """
+        Returns the if the wallbox is locked.
+        """
+        pass
+    
+    @abstractmethod
+    def set_locked(self) -> bool:
+        """
+        Sets to wallbox to locked or unlocked status
         """
         pass
 

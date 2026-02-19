@@ -11,11 +11,12 @@ log = logging.getLogger(__name__)
 class NrgkickController(WallboxBase):
 
     ID = 1
-    charingLevel = 6
+    chargingLevel = 6
     chargingStatus = False
     retryCount = 4
     activeChargingSession = False
     available = -1
+    locked = False
 
     def __init__(self):
         self.measurements_url = None
@@ -87,8 +88,8 @@ class NrgkickController(WallboxBase):
     def isCharging(self):
         return self.chargingStatus
 
-    def getCharingLevel(self):
-        return self.charingLevel
+    def getChargingLevel(self):
+        return self.chargingLevel
 
     def getRetryCount(self):
         return self.retryCount
@@ -96,14 +97,23 @@ class NrgkickController(WallboxBase):
     def setRetryCount(self, count): 
         self.retryCount = count
 
-    def isActiveCharingSession(self):
+    def isActiveChargingSession(self):
         return self.activeChargingSession
 
-    def setActiveCharingSession(self, status: bool): 
+    def setActiveChargingSession(self, status: bool): 
         self.activeChargingSession = status
 
+    def is_locked(self):
+        return self.locked
+        
+    def set_locked(self, status: bool): 
+        self.locked = status
+        
     def readData(self):
+        self.readSettings()
+
         chargingpower = 0
+        ischarging = 0
         self.available = -1
         try:
             try:
@@ -160,12 +170,14 @@ class NrgkickController(WallboxBase):
             
             # default
             phases = 2
-            if (totalVoltage > 600 and self.max_phases == 3):
+            if (totalVoltage > 600):
                 phases = 3
             elif (totalVoltage > 400):
                 phases = 2
             elif (totalVoltage > 200):
                 phases = 1
+            # limit phases if set in config
+            phases = min(phases,self.max_phases)
 
             try:
                 resp = requests.get(url=self.settings_url)
@@ -188,7 +200,7 @@ class NrgkickController(WallboxBase):
                 errorcode = settings['Info']['ErrorCodes'][0]
                 self.available = chargemanagercommon.boolToInt(settings['Info']['Connected'])
                 ischarging = chargemanagercommon.boolToInt(settings['Values']['ChargingStatus']['Charging'])
-                self.charingLevel = int(settings['Values']['ChargingCurrent']['Value'])
+                self.chargingLevel = int(settings['Values']['ChargingCurrent']['Value'])
 
             except:
                 log.error("Problems reading data from nrgkick!")
@@ -206,10 +218,8 @@ class NrgkickController(WallboxBase):
             
             log.debug(errorcode)
             log.debug(ischarging)
-            log.debug(self.charingLevel)
-
-            con = chargemanagercommon.getDBConnection()
-            
+            log.debug(self.chargingLevel)
+           
             # sometimes NRGKick delivers incorrect data from the second URL... 
             # chargingpower is the stronger signal so set isConnected and isCharging to true
             if (chargingpower > 1):
@@ -220,6 +230,7 @@ class NrgkickController(WallboxBase):
                 self.chargingStatus= True
             else:
                 self.chargingStatus = False
+            #log.info("chargingstatus: " + str(self.chargingStatus))
 
         except:
             log.error(traceback.format_exc())      
@@ -231,7 +242,7 @@ class NrgkickController(WallboxBase):
             "errorcode": 0,
             "isconnected": self.available,
             "ischarging": ischarging,
-            "chargingcurrent": self.charingLevel
+            "chargingcurrent": self.chargingLevel
         }   
 
     def isAvailable(self):
