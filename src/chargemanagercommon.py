@@ -5,7 +5,6 @@
 # database access or project initialization
 # --------------------------------------------------------------------------- #
 from pickle import FALSE
-from telnetlib import AUTHENTICATION
 import threading
 import logging
 import sqlite3 
@@ -28,6 +27,7 @@ SETTINGSURL ='settingsurl'
 CHARGERPASSWORD = 'chargerpassword' 
 PULSARWALLBOXTOPICNAME ='pulsarwallboxtopicname'
 MQTTIP = 'mqttip'
+KEBAP30IP = 'kebap30ip'
 CHARGINGPHASES = 'chargingphases' 
 WEBPORT = 'webport'
 SECRETKEY = 'secretkey' 
@@ -43,7 +43,9 @@ PLUGENABLED ='plugEnabled'
 ALLOWPLUGUSEHOUSEBATTERY ='allowPlugUseBattery'
 
 SOLAREDGE_SETTINGS_DIRTY = True
-WALLBOXES_SETTINGS_DIRTY = True
+NRGKICK_SETTINGS_DIRTY = True
+PULSAR_SETTINGS_DIRTY = True
+KEBAP30_SETTINGS_DIRTY = True
 SMARTPLUG_SETTINGS_DIRTY = True
 FRONTEND_SETTINGS_DIRTY = True
 CHARGEMANAGER_SETTINGS_DIRTY = True
@@ -64,7 +66,7 @@ def init():
         initWallboxestable()
         initChargelogTable()
         initSettingsTable()
-        databaseInitialized == True
+        databaseInitialized = True
     sem.release()
 
 def getSetting(key):
@@ -78,6 +80,11 @@ def getDBConnection():
     con.execute('pragma mmap_size = 30000000000')
     return con
 
+def boolToInt(input):
+    if str(input).casefold() == 'true':
+        return 1
+    return 0
+    
 def getSettings():
     con = getDBConnection()
 
@@ -526,7 +533,7 @@ def initWallboxestable():
             connected,
             ischarging,
             chargingcurrent,
-            phases) VALUES (1,1,0,0,0,0,0,0,0,1),(2,2,0,0,0,0,0,0,0,1)
+            phases) VALUES (1,1,0,0,0,0,0,0,0,1),(2,2,0,0,0,0,0,0,0,1),(3,3,0,0,0,0,0,0,0,1)
             """
             cur = con.cursor()
             cur.execute(wallboxes_insert_sql)
@@ -609,6 +616,7 @@ def initSettingsTable():
         chargerpassword TEXT NOT NULL,
         pulsarwallboxtopicname TEXT NOT NULL,
         mqttip TEXT NOT NULL,
+        kebap30ip TEXT NOT NULL,
         chargingphases integer NOT NULL,
         webport integer NOT NULL,
         secretkey TEXT NOT NULL,
@@ -648,6 +656,7 @@ def initSettingsTable():
             chargerpassword,
             pulsarwallboxtopicname,
             mqttip,
+            kebap30ip,
             chargingphases,
             webport,
             secretkey,
@@ -662,23 +671,24 @@ def initSettingsTable():
             plugEnabled,
             allowPlugUseBattery) 
             VALUES (
-            '192.168.178.xx',
+            '192.168.178.51',
             1502,
             9400,
             60,
             2600,
             4950,
             1,
-            'http://192.168.178.xx/api/measurements/04:91:62:76:xx:xx',
-            'http://192.168.178.xx/api/settings/04:91:62:76:xx:xx',
+            'http://192.168.178.33/api/measurements/04:91:62:76:7D:D4',
+            'http://192.168.178.33/api/settings/04:91:62:76:7D:D4',
             '1234',
-            'wallbox_xxxxx',
-            '192.168.178.xx',
+            'wallbox_x',
+            '192.168.178.x',
+            '192.168.178.x',
             2,
             5000,
-            '11111',
+            '1ASDCX34FVAY41',
             0,
-            '192.168.178.xx',
+            '192.168.178.x',
             2100,
             '13:55',
             '16:15',

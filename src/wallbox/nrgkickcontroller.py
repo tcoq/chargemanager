@@ -117,7 +117,7 @@ class NrgkickController(WallboxBase):
         self.available = -1
         try:
             try:
-                resp = requests.get(url=self.measurements_url)
+                resp = requests.get(url=self.measurements_url, timeout=5)
             except:
                 log.debug("Could not connect to nrg kick data")
 
@@ -180,7 +180,7 @@ class NrgkickController(WallboxBase):
             phases = min(phases,self.max_phases)
 
             try:
-                resp = requests.get(url=self.settings_url)
+                resp = requests.get(url=self.settings_url, timeout=5)
             except:
                 log.debug("Could not connect to nrg kick settings")
                 return {

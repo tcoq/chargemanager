@@ -54,7 +54,7 @@ class PulsarWallboxController(WallboxBase):
             return {"errorcode": 1}
         try:
 
-            client = mqtt.Client() 
+            client = mqtt.Client()
             client.connect(self.mqttip, 1883, 60)
             
             client.publish(self.topicname + "/charging_enable/set", str(chargemanagercommon.boolToInt(startCharging)))
@@ -70,7 +70,6 @@ class PulsarWallboxController(WallboxBase):
                 time.sleep(0.1)
 
             client.loop_stop()
-
             client.disconnect()
 
         except:
@@ -167,7 +166,7 @@ class PulsarWallboxController(WallboxBase):
                 
                 self.received_values["phases"] = int(phases)
 
-            client = mqtt.Client()  # Für neue paho-mqtt-Versionen
+            client = mqtt.Client() # Für neue paho-mqtt-Versionen
             client.on_message = on_message
             client.on_connect = on_connect
 
@@ -189,6 +188,7 @@ class PulsarWallboxController(WallboxBase):
                 time.sleep(0.1)
 
             client.loop_stop()
+            client.disconnect()
         except:
             log.error(traceback.format_exc()) 
         

@@ -180,6 +180,7 @@ def saveForm():
         data[chargemanagercommon.SETTINGSURL]  = request.form[chargemanagercommon.SETTINGSURL]
         data[chargemanagercommon.CHARGERPASSWORD]  = request.form[chargemanagercommon.CHARGERPASSWORD]
         data[chargemanagercommon.MQTTIP]  = request.form[chargemanagercommon.MQTTIP]
+        data[chargemanagercommon.KEBAP30IP]  = request.form[chargemanagercommon.KEBAP30IP]
         data[chargemanagercommon.PULSARWALLBOXTOPICNAME]  = request.form[chargemanagercommon.PULSARWALLBOXTOPICNAME]
         data[chargemanagercommon.CHARGINGPHASES]  = request.form[chargemanagercommon.CHARGINGPHASES]
         data[chargemanagercommon.WEBPORT]  = request.form[chargemanagercommon.WEBPORT]
@@ -204,6 +205,7 @@ def saveForm():
         chargemanagercommon.SMARTPLUG_SETTINGS_DIRTY == True
         chargemanagercommon.FRONTEND_SETTINGS_DIRTY == True
         chargemanagercommon.CHARGEMANAGER_SETTINGS_DIRTY == True
+        chargemanagercommon.KEBAP30_SETTINGS_DIRTY == True
     except:
         log.error(traceback.format_exc()) 
 

@@ -18,6 +18,7 @@ import chargemanagercommon
 import logging
 from wallbox import nrgkickcontroller
 from wallbox import pulsarwallboxcontroller
+from wallbox import kebap30controller
 
 log = logging.getLogger(__name__)
 os.environ['TZ'] = 'Europe/Berlin'
@@ -79,8 +80,9 @@ def main():
 
     nrgkick = nrgkickcontroller.NrgkickController()
     pulsar = pulsarwallboxcontroller.PulsarWallboxController()
+    kebap30 = kebap30controller.Kebap30Controller()
 
-    devices = [nrgkick, pulsar]
+    devices = [nrgkick, pulsar, kebap30]
 
     while True:
         try:
