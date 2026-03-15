@@ -8,7 +8,7 @@
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.payload import BinaryPayloadBuilder
-from pymodbus.client.sync import ModbusTcpClient as ModbusClient
+from pymodbus.client import ModbusTcpClient as ModbusClient  # 3.x: kein .sync mehr
 import math
 import ctypes
 import sqlite3
@@ -39,11 +39,11 @@ def readSettings():
 # typ =  int16 | uint16 | uint32 | float32
 def readData(client,address,size,typ):
     #logging.debug("client" + str(client))
-    request = client.read_holding_registers(address,size,unit=1)
+    request = client.read_holding_registers(address, count=size, slave=1)  # 3.x: unit= → slave=
     if (typ == "int16" or typ == "uint16"):
-        decoder = BinaryPayloadDecoder.fromRegisters(request.registers,byteorder=Endian.Big)
+        decoder = BinaryPayloadDecoder.fromRegisters(request.registers,byteorder=Endian.BIG)   # 3.x: Endian.Big → Endian.BIG
     if (typ == "uint32" or typ == "float32" or typ == "int64" or typ == "int32"):
-        decoder = BinaryPayloadDecoder.fromRegisters(request.registers,Endian.Big,wordorder=Endian.Little)
+        decoder = BinaryPayloadDecoder.fromRegisters(request.registers,Endian.BIG,wordorder=Endian.LITTLE)  # 3.x: Endian.Big/Little → Endian.BIG/LITTLE
     if (typ == "int16"):
         return decoder.decode_16bit_int()
     if (typ == "int32"):
@@ -189,6 +189,3 @@ def main():
             log.debug("sleeped " + str(READ_INTERVAL_SEC) + " seconds")
     except KeyboardInterrupt:
         pass
-    
-
-

@@ -6,7 +6,6 @@
 # Script was tested with 11KW version of first NRGKICK version (from production-year 2020)
 # --------------------------------------------------------------------------- #
 
-import requests
 import sqlite3
 
 import pytz, os

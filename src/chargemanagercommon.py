@@ -143,6 +143,22 @@ def getPhases(id):
         return -1
     return int(chargemode[0])
 #
+# Returns the id of the currently active wallbox (first connected one)
+# Returns: id or -1 if none connected
+#
+def getActiveWallboxId():
+    con = getDBConnection()
+    try:
+        cur = con.cursor()
+        cur.execute("SELECT id FROM wallboxes WHERE isconnected = 1 LIMIT 1")
+        row = cur.fetchone()
+        cur.close()
+    except:
+        return -1
+    finally:
+        con.close()
+    return int(row[0]) if row else -1
+#
 # Calculating the right power range for a given power-value
 #
 def getPowerRange(currentAvailablePower):
