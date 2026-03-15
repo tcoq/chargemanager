@@ -74,7 +74,7 @@ class Kebap30Controller(WallboxBase):
                     self.available = 1
 
             else:
-                self._handle_disconnect()
+                self._handle_offline()
 
         except Exception as e:
             log.debug(f"KEBA Modbus Read failed: {e}")
@@ -132,9 +132,11 @@ class Kebap30Controller(WallboxBase):
     def isCharging(self): return self._last_is_charging
     def getChargingLevel(self): return self.last_set_limit_a
     
-    # Exakt wie beim NRGkick: 
-    def isAvailable(self): 
-        return self.available > 0
+    def isAvailable(self):
+        if (self.available > 0):
+            return True
+        else:
+            return False
     
     def getRetryCount(self): return self.retryCount
     def setRetryCount(self, count): self.retryCount = count
