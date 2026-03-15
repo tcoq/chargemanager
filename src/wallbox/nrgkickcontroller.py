@@ -222,7 +222,7 @@ class NrgkickController(WallboxBase):
            
             # sometimes NRGKick delivers incorrect data from the second URL... 
             # chargingpower is the stronger signal so set isConnected and isCharging to true
-            if (chargingpower > 1):
+            if (chargingpower > 200):
                 self.available = 1
                 ischarging = 1
 
