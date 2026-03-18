@@ -46,11 +46,11 @@ def readData(client, address, size, typ):
     
         if request.isError():
             log.error(f"Modbus error at address {address}: {request}")
-            return 0 
+            raise IOError(f"Modbus isError() at address {address}")
         
         if not hasattr(request, 'registers'):
             log.error(f"No registers in response for address {address}")
-            return 0
+            raise IOError(f"No registers in response at address {address}")
 
         if typ == "int16" or typ == "uint16":
             decoder = BinaryPayloadDecoder.fromRegisters(request.registers, byteorder=Endian.BIG)
@@ -67,7 +67,7 @@ def readData(client, address, size, typ):
         
     except Exception:
         log.error(f"Error in readData at {address}: {traceback.format_exc()}")
-        return 0
+        raise
 
 def cleanupData():
     log.info("Starting cleanup of old data (older than 72h)...")
@@ -90,72 +90,68 @@ def readModbus(client):
     tz = pytz.timezone('Europe/Berlin')
     timestamp = datetime.now(tz)
     
+    # collect data from inverter
+    ac_one_operation = readData(client, 40083, 2, "int32")
+    ac = ctypes.c_int16(ac_one_operation & 0xffff).value
+    ac_scale_factor = ctypes.c_int16((ac_one_operation >> 16) & 0xffff).value
+    ac_power = int(ac * math.pow(10, ac_scale_factor))
+
+    ac_to_from_grid_raw = readData(client, 40206, 5, "raw")
+    if not hasattr(ac_to_from_grid_raw, 'registers'):
+        raise IOError("Could not read grid data (no registers), skipping this cycle.")
+
+    ac_to_from_grid = ctypes.c_int16(ac_to_from_grid_raw.registers[0] & 0xffff).value
+    ac_grid_scale_factor = ctypes.c_int16(ac_to_from_grid_raw.registers[4] & 0xffff).value
+    ac_power_to_from_grid = int(ac_to_from_grid * math.pow(10, ac_grid_scale_factor))
+
+    dc_one_operation = readData(client, 40100, 2, "int32")
+    dc = ctypes.c_int16(dc_one_operation & 0xffff).value 
+    dc_scale_factor = ctypes.c_int16((dc_one_operation >> 16) & 0xffff).value
+    dc_power = dc * math.pow(10, dc_scale_factor)
+    
+    temp = readData(client, 40103, 1, "int16")
+    status = readData(client, 40107, 1, "uint16")
+    battery_power = readData(client, 62836, 2, "float32")
+    battery_status = readData(client, 62854, 2, "uint32")
+    soc = readData(client, 62852, 2, "float32")
+    soh = readData(client, 62850, 2, "float32")
+    
+    # Berechnungen
+    house_consumption = ac_power - ac_power_to_from_grid
+    pv_prod = max(0, ac_power + battery_power) if (ac_power + battery_power) < 50 else (ac_power + battery_power)
+    available_power = ac_power_to_from_grid + battery_power
+    availablepowerrange = chargemanagercommon.getPowerRange(available_power)
+
+    # 2. Datenbank-Operationen
+    con = chargemanagercommon.getDBConnection()
     try:
-        # 1. Daten vom Wechselrichter abrufen
-        ac_one_operation = readData(client, 40083, 2, "int32")
-        ac = ctypes.c_int16(ac_one_operation & 0xffff).value
-        ac_scale_factor = ctypes.c_int16((ac_one_operation >> 16) & 0xffff).value
-        ac_power = int(ac * math.pow(10, ac_scale_factor))
-
-        ac_to_from_grid_raw = readData(client, 40206, 5, "raw")
-        if not hasattr(ac_to_from_grid_raw, 'registers'):
-            log.warning("Could not read grid data, skipping this cycle.")
-            return
-
-        ac_to_from_grid = ctypes.c_int16(ac_to_from_grid_raw.registers[0] & 0xffff).value
-        ac_grid_scale_factor = ctypes.c_int16(ac_to_from_grid_raw.registers[4] & 0xffff).value
-        ac_power_to_from_grid = int(ac_to_from_grid * math.pow(10, ac_grid_scale_factor))
-
-        dc_one_operation = readData(client, 40100, 2, "int32")
-        dc = ctypes.c_int16(dc_one_operation & 0xffff).value 
-        dc_scale_factor = ctypes.c_int16((dc_one_operation >> 16) & 0xffff).value
-        dc_power = dc * math.pow(10, dc_scale_factor)
+        cur = con.cursor()
+        # Wallbox Summe mit NULL-Check
+        cur.execute("SELECT sum(chargingpower) FROM wallboxes")
+        row = cur.fetchone()
+        wallboxes_power = int(row[0]) if row and row[0] is not None else 0
         
-        temp = readData(client, 40103, 1, "int16")
-        status = readData(client, 40107, 1, "uint16")
-        battery_power = readData(client, 62836, 2, "float32")
-        battery_status = readData(client, 62854, 2, "uint32")
-        soc = readData(client, 62852, 2, "float32")
-        soh = readData(client, 62850, 2, "float32")
+        if house_consumption >= wallboxes_power:
+            availablepower_withoutcharging = available_power + wallboxes_power 
+        else:              
+            availablepower_withoutcharging = available_power           
+
+        # Insert in die Modbus Tabelle
+        log.debug(f"Inserting: PV={pv_prod}, House={house_consumption}, SOC={soc}")
+        sql = """INSERT INTO 'modbus' (timestamp,pvprod,houseconsumption,acpower,acpowertofromgrid,dcpower,
+                    availablepower_withoutcharging,availablepowerrange,temperature,status,batterypower,
+                    batterystatus,soc,soh) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
         
-        # Berechnungen
-        house_consumption = ac_power - ac_power_to_from_grid
-        pv_prod = max(0, ac_power + battery_power) if (ac_power + battery_power) < 50 else (ac_power + battery_power)
-        available_power = ac_power_to_from_grid + battery_power
-        availablepowerrange = chargemanagercommon.getPowerRange(available_power)
-
-        # 2. Datenbank-Operationen
-        con = chargemanagercommon.getDBConnection()
-        try:
-            cur = con.cursor()
-            # Wallbox Summe mit NULL-Check
-            cur.execute("SELECT sum(chargingpower) FROM wallboxes")
-            row = cur.fetchone()
-            wallboxes_power = int(row[0]) if row and row[0] is not None else 0
-            
-            if house_consumption >= wallboxes_power:
-                availablepower_withoutcharging = available_power + wallboxes_power 
-            else:              
-                availablepower_withoutcharging = available_power           
-
-            # Insert in die Modbus Tabelle
-            log.debug(f"Inserting: PV={pv_prod}, House={house_consumption}, SOC={soc}")
-            sql = """INSERT INTO 'modbus' (timestamp,pvprod,houseconsumption,acpower,acpowertofromgrid,dcpower,
-                     availablepower_withoutcharging,availablepowerrange,temperature,status,batterypower,
-                     batterystatus,soc,soh) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
-            
-            cur.execute(sql, (str(timestamp), pv_prod, house_consumption, ac_power, ac_power_to_from_grid, 
-                             dc_power, availablepower_withoutcharging, availablepowerrange, temp/100, 
-                             status, battery_power, battery_status, soc, soh))
-            con.commit()
-            cur.close()
-        except Exception as db_err:
-            log.error(f"Database Error: {db_err}")
-        finally:
-            con.close()
-
-    except Exception:
-        log.error(f"Error in readModbus cycle: {traceback.format_exc()}")
+        cur.execute(sql, (str(timestamp), pv_prod, house_consumption, ac_power, ac_power_to_from_grid, 
+                            dc_power, availablepower_withoutcharging, availablepowerrange, temp/100, 
+                            status, battery_power, battery_status, soc, soh))
+        con.commit()
+        cur.close()
+    except Exception as db_err:
+        log.error(f"Database Error: {db_err}")
+        raise
+    finally:
+        con.close()
 
 def main():
     os.environ['TZ'] = 'Europe/Berlin'
@@ -174,7 +170,11 @@ def main():
                 # IP-Wechsel Logik (TypeError-Safe)
                 if SOLAREDGE_INVERTER_IP != last_used_ip or SOLAREDGE_MODBUS_PORT != last_used_port:
                     if client: 
-                        client.close()
+                        try:
+                            client.close()
+                        except Exception:
+                            pass
+                        client = None
                     
                     if SOLAREDGE_INVERTER_IP and SOLAREDGE_INVERTER_IP not in [0, "0.0.0.0"]:
                         log.info(f"Connecting to new IP: {SOLAREDGE_INVERTER_IP}")
@@ -186,16 +186,32 @@ def main():
                         time.sleep(5)
                         continue
 
-                # Verbindung halten/aufbauen
+                # detect zombie connections
                 if client:
-                    if not client.connected:
-                        try:
-                            client.connect()
-                        except Exception as ce:
-                            log.error(f"Connect failed: {ce}")
-
-                    if client.connected:
+                    try:
+                        if not client.connect():
+                            raise ConnectionError("Connect returned False")
                         readModbus(client)
+                    except Exception:
+                        log.error(f"Read/connect error: {traceback.format_exc()}")
+                        # reset client to get fresh client for next cycle
+                        try:
+                            client.close()
+                        except Exception:
+                            pass
+                        client = None
+                        last_used_ip = None
+                        last_used_port = None
+                    finally:
+                        # Verbindung nach jedem Zyklus sauber schließen
+                        if client:
+                            try:
+                                client.close()
+                            except Exception:
+                                pass
+                        client = None          
+                        last_used_ip = None    # to reset client for next cycle
+                        last_used_port = None  
                 
                 # Cleanup um 00:01 Uhr
                 dt = datetime.now()
@@ -204,15 +220,24 @@ def main():
 
             except Exception:
                 log.error(f"Main loop error: {traceback.format_exc()}")
-                if client: 
-                    try: client.close()
-                    except: pass
+                if client:
+                    try:
+                        client.close()
+                    except Exception:
+                        pass
+                client = None
+                last_used_ip = None # to reset client for next cycle
+                last_used_port = None
         
             time.sleep(READ_INTERVAL_SEC)
             
     except KeyboardInterrupt:
         log.info("Stopped by user.")
-        if client: client.close()
+        if client:
+            try:
+                client.close()
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     main()

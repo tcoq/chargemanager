@@ -29,7 +29,7 @@ client.on_connect = on_connect
 client.on_message = on_message
 
 # Verbindung zum Broker herstellen
-client.connect("xx.xx.xx.xx", 1883, 60)
+client.connect("192.168.178.89", 1883, 60)
 
 # Endlosschleife starten
 client.loop_forever()
