@@ -30,12 +30,7 @@ def readSettings():
     # Check dirty flag or initial start
     if chargemanagercommon.SOLAREDGE_SETTINGS_DIRTY or SOLAREDGE_INVERTER_IP is None:
         new_ip = chargemanagercommon.getSetting(chargemanagercommon.SEIP)
-        new_port = chargemanagercommon.getSetting(chargemanagercommon.SEPORT)
-        
-        # Nur loggen, wenn sich wirklich etwas geändert hat (vermeidet Log-Spam am Start)
-        if SOLAREDGE_INVERTER_IP is not None and new_ip != SOLAREDGE_INVERTER_IP:
-            log.info(f"Solaredge settings changed: IP={new_ip}, Port={new_port}")
-            
+        new_port = chargemanagercommon.getSetting(chargemanagercommon.SEPORT)           
         SOLAREDGE_INVERTER_IP = new_ip
         SOLAREDGE_MODBUS_PORT = new_port
         chargemanagercommon.SOLAREDGE_SETTINGS_DIRTY = False
@@ -177,7 +172,6 @@ def main():
                         client = None
                     
                     if SOLAREDGE_INVERTER_IP and SOLAREDGE_INVERTER_IP not in [0, "0.0.0.0"]:
-                        log.info(f"Connecting to new IP: {SOLAREDGE_INVERTER_IP}")
                         client = ModbusClient(str(SOLAREDGE_INVERTER_IP), port=int(SOLAREDGE_MODBUS_PORT), timeout=3)
                         last_used_ip = SOLAREDGE_INVERTER_IP
                         last_used_port = SOLAREDGE_MODBUS_PORT

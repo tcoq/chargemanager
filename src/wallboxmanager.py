@@ -209,7 +209,7 @@ def main():
                 timestamp = datetime.now(tz)
                 # TO-DO REFACTORING: 
                 # chargingPossible is a problem in this condition if car is full and sun is shining / need to think about a better way for this tracking
-                cur_log.execute("INSERT INTO 'chargelog' (timestamp,currentChargingPower,chargingPossible) VALUES ('"+ str(timestamp) + "',"  + str(int(deviceDict['chargingpower'])) + "," + str(chargingPossible_global) + ")")
+                cur_log.execute("INSERT INTO 'chargelog' (timestamp,currentChargingPower,chargingPossible) VALUES ('"+ str(timestamp) + "',"  + str(total_cycle_charging_power) + "," + str(chargingPossible_global) + ")")
 
                 con_log.commit()
                 cur_log.close()
