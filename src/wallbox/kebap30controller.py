@@ -92,7 +92,7 @@ class Kebap30Controller(WallboxBase):
                 # PLAUSIBILITY CHECK mit Entprellung
                 # If active power exceeds 100W, we force 'ischarging' to True.
                 # This bypasses laggy status register updates or RFID-locked status bits.
-                if real_power > 100:
+                if real_power > 500:
                     self.low_power_count = 0
                     self._last_is_charging = True
                 else:
@@ -101,7 +101,8 @@ class Kebap30Controller(WallboxBase):
                     if self.low_power_count >= 2:
                         self._last_is_charging = (keba_state == 3)
                     else:
-                        # if confused hold last Status (True)
+                        # hold value on True
+                        self._last_is_charging = True
                         pass
 
                 self.last_data.update({
