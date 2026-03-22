@@ -66,6 +66,7 @@ class Kebap30Controller(WallboxBase):
                 # or lack of RFID auth can cause register read errors.
                 try:
                     res_s = client.read_holding_registers(1001, count=1, slave=self.UNIT_ID)
+                    time.sleep(0.1)
                     if res_s and not res_s.isError():
                         keba_state = res_s.registers[0]
                 except Exception:
@@ -74,20 +75,13 @@ class Kebap30Controller(WallboxBase):
                 # Fetch Active Power (Register 1020, 32-bit value in mW)
                 try:
                     res_p = client.read_holding_registers(1020, count=2, slave=self.UNIT_ID)
+                    time.sleep(0.1)
                     if res_p and not res_p.isError():
                         # High-word and low-word bit shifting for 32-bit value
                         power_mw = (res_p.registers[0] << 16) | res_p.registers[1]
                         real_power = int(power_mw / 1000) # Convert mW to W
                 except Exception:
                     log.debug("KEBA: Power register 1020 inaccessible")
-
-                # Fetch Internal Temperature (Register 1046)
-                try:
-                    res_t = client.read_holding_registers(1046, count=1, slave=self.UNIT_ID)
-                    if res_t and not res_t.isError():
-                        temperature = int(res_t.registers[0] / 10) # 0.1°C resolution
-                except Exception:
-                    pass
 
                 # PLAUSIBILITY CHECK mit Entprellung
                 # If active power exceeds 100W, we force 'ischarging' to True.
@@ -107,10 +101,11 @@ class Kebap30Controller(WallboxBase):
 
                 self.last_data.update({
                     "chargingpower": max(0, real_power),
-                    "phases": self.max_phases if real_power > 1000 else 1,
+                    # set to fixed two phases because keba register do not provide phase infos
+                    "phases": 2,
                     "ischarging": 1 if self._last_is_charging else 0,
                     "chargingcurrent": int(self.last_set_limit_a),
-                    "temperature": temperature,
+                    "temperature": 0,
                     "errorcode": 0
                 })
             else:
