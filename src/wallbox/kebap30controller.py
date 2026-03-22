@@ -29,6 +29,7 @@ class Kebap30Controller(WallboxBase):
         self.available = 0 
         self._last_is_charging = False
         self.last_data = self._get_empty_data()
+        self.low_power_count = 0
         self.readSettings()
 
     def readSettings(self):
@@ -88,13 +89,20 @@ class Kebap30Controller(WallboxBase):
                 except Exception:
                     pass
 
-                # PLAUSIBILITY CHECK:
+                # PLAUSIBILITY CHECK mit Entprellung
                 # If active power exceeds 100W, we force 'ischarging' to True.
                 # This bypasses laggy status register updates or RFID-locked status bits.
                 if real_power > 100:
+                    self.low_power_count = 0
                     self._last_is_charging = True
                 else:
-                    self._last_is_charging = (keba_state == 3)
+                    self.low_power_count += 1
+                    # only set to off if we read two times "False"
+                    if self.low_power_count >= 2:
+                        self._last_is_charging = (keba_state == 3)
+                    else:
+                        # if confused hold last Status (True)
+                        pass
 
                 self.last_data.update({
                     "chargingpower": max(0, real_power),
