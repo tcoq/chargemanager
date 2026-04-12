@@ -15,19 +15,31 @@ import pytz, os
 from datetime import datetime
 import time
 import traceback
+import signal
+import sys
 import chargemanagercommon
 
 # Logging Setup
 log = logging.getLogger(__name__)
 
-# Globale Variablen
+# Global Variables
 SOLAREDGE_INVERTER_IP = None
 SOLAREDGE_MODBUS_PORT = 0
 READ_INTERVAL_SEC = 12
+keep_running = True
+
+def handle_exit(signum, frame):
+    """ Handles external signals like SIGTERM from pkill or reboot """
+    global keep_running
+    log.info(f"Signal {signum} received. Initiating graceful shutdown...")
+    keep_running = False
+
+# Register signals for clean exit
+signal.signal(signal.SIGTERM, handle_exit)
+signal.signal(signal.SIGINT, handle_exit)
 
 def readSettings():
     global SOLAREDGE_INVERTER_IP, SOLAREDGE_MODBUS_PORT
-    # Check dirty flag or initial start
     if chargemanagercommon.SOLAREDGE_SETTINGS_DIRTY or SOLAREDGE_INVERTER_IP is None:
         new_ip = chargemanagercommon.getSetting(chargemanagercommon.SEIP)
         new_port = chargemanagercommon.getSetting(chargemanagercommon.SEPORT)           
@@ -85,7 +97,7 @@ def readModbus(client):
     tz = pytz.timezone('Europe/Berlin')
     timestamp = datetime.now(tz)
     
-    # collect data from inverter
+    # Collect data from inverter
     ac_one_operation = readData(client, 40083, 2, "int32")
     ac = ctypes.c_int16(ac_one_operation & 0xffff).value
     ac_scale_factor = ctypes.c_int16((ac_one_operation >> 16) & 0xffff).value
@@ -111,17 +123,16 @@ def readModbus(client):
     soc = readData(client, 62852, 2, "float32")
     soh = readData(client, 62850, 2, "float32")
     
-    # Berechnungen
+    # Calculations
     house_consumption = ac_power - ac_power_to_from_grid
     pv_prod = max(0, ac_power + battery_power) if (ac_power + battery_power) < 50 else (ac_power + battery_power)
     available_power = ac_power_to_from_grid + battery_power
     availablepowerrange = chargemanagercommon.getPowerRange(available_power)
 
-    # 2. Datenbank-Operationen
+    # Database operations
     con = chargemanagercommon.getDBConnection()
     try:
         cur = con.cursor()
-        # Wallbox Summe mit NULL-Check
         cur.execute("SELECT sum(chargingpower) FROM wallboxes")
         row = cur.fetchone()
         wallboxes_power = int(row[0]) if row and row[0] is not None else 0
@@ -131,8 +142,6 @@ def readModbus(client):
         else:              
             availablepower_withoutcharging = available_power           
 
-        # Insert in die Modbus Tabelle
-        log.debug(f"Inserting: PV={pv_prod}, House={house_consumption}, SOC={soc}")
         sql = """INSERT INTO 'modbus' (timestamp,pvprod,houseconsumption,acpower,acpowertofromgrid,dcpower,
                     availablepower_withoutcharging,availablepowerrange,temperature,status,batterypower,
                     batterystatus,soc,soh) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
@@ -158,18 +167,16 @@ def main():
     last_used_port = None
 
     try:
-        while True:
+        while keep_running:
             try:
                 readSettings()
 
-                # IP-Wechsel Logik (TypeError-Safe)
+                # IP/Port change logic
                 if SOLAREDGE_INVERTER_IP != last_used_ip or SOLAREDGE_MODBUS_PORT != last_used_port:
                     if client: 
-                        try:
-                            client.close()
-                        except Exception:
-                            pass
-                        client = None
+                        try: client.close()
+                        except: pass
+                    client = None
                     
                     if SOLAREDGE_INVERTER_IP and SOLAREDGE_INVERTER_IP not in [0, "0.0.0.0"]:
                         client = ModbusClient(str(SOLAREDGE_INVERTER_IP), port=int(SOLAREDGE_MODBUS_PORT), timeout=3)
@@ -180,58 +187,51 @@ def main():
                         time.sleep(5)
                         continue
 
-                # detect zombie connections
+                # Main communication block
                 if client:
                     try:
                         if not client.connect():
                             raise ConnectionError("Connect returned False")
+                        
                         readModbus(client)
+                        
                     except Exception:
                         log.error(f"Read/connect error: {traceback.format_exc()}")
-                        # reset client to get fresh client for next cycle
-                        try:
-                            client.close()
-                        except Exception:
-                            pass
-                        client = None
-                        last_used_ip = None
-                        last_used_port = None
                     finally:
-                        # Verbindung nach jedem Zyklus sauber schließen
+                        # CRITICAL: Always close connection after each cycle to prevent zombie sockets
                         if client:
-                            try:
-                                client.close()
-                            except Exception:
-                                pass
-                        client = None          
-                        last_used_ip = None    # to reset client for next cycle
-                        last_used_port = None  
-                
-                # Cleanup um 00:01 Uhr
+                            try: client.close()
+                            except: pass
+                        # Re-initialize client for next cycle to ensure a fresh source port
+                        client = ModbusClient(str(SOLAREDGE_INVERTER_IP), port=int(SOLAREDGE_MODBUS_PORT), timeout=3)
+
+                # Nightly Cleanup at 00:01
                 dt = datetime.now()
                 if dt.hour == 0 and dt.minute == 1 and dt.second < READ_INTERVAL_SEC:
                     cleanupData()
 
             except Exception:
                 log.error(f"Main loop error: {traceback.format_exc()}")
-                if client:
-                    try:
-                        client.close()
-                    except Exception:
-                        pass
                 client = None
-                last_used_ip = None # to reset client for next cycle
-                last_used_port = None
         
-            time.sleep(READ_INTERVAL_SEC)
+            # Sleep but check every second for shutdown signal
+            for _ in range(READ_INTERVAL_SEC):
+                if not keep_running: 
+                    break
+                time.sleep(1)
             
     except KeyboardInterrupt:
         log.info("Stopped by user.")
+    finally:
+        # Final cleanup on script exit (SIGTERM / SIGINT)
+        log.info("Cleanup before script exit...")
         if client:
             try:
                 client.close()
-            except Exception:
+                log.info("Modbus connection closed successfully.")
+            except:
                 pass
+        log.info("Script exit.")
 
 if __name__ == "__main__":
     main()

@@ -30,6 +30,7 @@ class Kebap30Controller(WallboxBase):
         self._last_is_charging = False
         self.last_data = self._get_empty_data()
         self.low_power_count = 0
+        self.last_valid_power = 0
         self.readSettings()
 
     def readSettings(self):
@@ -79,10 +80,11 @@ class Kebap30Controller(WallboxBase):
                     if res_p and not res_p.isError():
                         # High-word and low-word bit shifting for 32-bit value
                         power_mw = (res_p.registers[0] << 16) | res_p.registers[1]
-                        real_power = int(power_mw / 1000) # Convert mW to W
+                        self.last_valid_power = int(power_mw / 1000)
                 except Exception:
                     log.debug("KEBA: Power register 1020 inaccessible")
-
+                
+                real_power = self.last_valid_power
                 # PLAUSIBILITY CHECK mit Entprellung
                 # If active power exceeds 100W, we force 'ischarging' to True.
                 # This bypasses laggy status register updates or RFID-locked status bits.
