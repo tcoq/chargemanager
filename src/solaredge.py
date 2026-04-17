@@ -104,7 +104,7 @@ def readModbus(client):
     ac_power = int(ac * math.pow(10, ac_scale_factor))
 
     ac_to_from_grid_raw = readData(client, 40206, 5, "raw")
-    if not hasattr(ac_to_from_grid_raw, 'registers'):
+    if not hasattr(ac_to_from_grid_raw, 'registers') or len(ac_to_from_grid_raw.registers) < 5:
         raise IOError("Could not read grid data (no registers), skipping this cycle.")
 
     ac_to_from_grid = ctypes.c_int16(ac_to_from_grid_raw.registers[0] & 0xffff).value
@@ -166,72 +166,72 @@ def main():
     last_used_ip = None
     last_used_port = None
 
-    try:
-        while keep_running:
-            try:
-                readSettings()
+    while keep_running:
+        try:
+            readSettings()
 
-                # IP/Port change logic
-                if SOLAREDGE_INVERTER_IP != last_used_ip or SOLAREDGE_MODBUS_PORT != last_used_port:
-                    if client: 
+            # 1. INIT BLOCK
+            # gen new obj if someting changed
+            if SOLAREDGE_INVERTER_IP != last_used_ip or SOLAREDGE_MODBUS_PORT != last_used_port:
+                if client: 
+                    try: client.close()
+                    except: pass
+                
+                if SOLAREDGE_INVERTER_IP and SOLAREDGE_INVERTER_IP not in [0, "0.0.0.0"]:
+                    log.info(f"Initializing Modbus client for {SOLAREDGE_INVERTER_IP}:{SOLAREDGE_MODBUS_PORT}")
+                    client = ModbusClient(str(SOLAREDGE_INVERTER_IP), port=int(SOLAREDGE_MODBUS_PORT), timeout=3)
+                    last_used_ip = SOLAREDGE_INVERTER_IP
+                    last_used_port = SOLAREDGE_MODBUS_PORT
+                else:
+                    log.warning("Invalid IP configuration. Waiting...")
+                    time.sleep(10)
+                    continue
+
+            # 2. COM BLOCK
+            if client:
+                try:
+                    # try to connect
+                    if client.connect():
+                        # if scuessful read
+                        readModbus(client)
+                        # close after sucessful read
+                        client.close()
+                    else:
+                        # if solaredge sleeps
+                        log.warning(f"Could not connect to Inverter at {SOLAREDGE_INVERTER_IP}. (Standby?)")
+                
+                except Exception:
+                    # catch readModbus errors(like IndexError)
+                    log.error(f"Error during Modbus cycle: {traceback.format_exc()}")
+                    if client:
                         try: client.close()
                         except: pass
-                    client = None
-                    
-                    if SOLAREDGE_INVERTER_IP and SOLAREDGE_INVERTER_IP not in [0, "0.0.0.0"]:
-                        client = ModbusClient(str(SOLAREDGE_INVERTER_IP), port=int(SOLAREDGE_MODBUS_PORT), timeout=3)
-                        last_used_ip = SOLAREDGE_INVERTER_IP
-                        last_used_port = SOLAREDGE_MODBUS_PORT
-                    else:
-                        log.warning("Invalid IP configuration. Waiting...")
-                        time.sleep(5)
-                        continue
-
-                # Main communication block
-                if client:
-                    try:
-                        if not client.connect():
-                            raise ConnectionError("Connect returned False")
-                        
-                        readModbus(client)
-                        
-                    except Exception:
-                        log.error(f"Read/connect error: {traceback.format_exc()}")
-                    finally:
-                        # CRITICAL: Always close connection after each cycle to prevent zombie sockets
-                        if client:
-                            try: client.close()
-                            except: pass
-                        # Re-initialize client for next cycle to ensure a fresh source port
-                        client = ModbusClient(str(SOLAREDGE_INVERTER_IP), port=int(SOLAREDGE_MODBUS_PORT), timeout=3)
-
-                # Nightly Cleanup at 00:01
-                dt = datetime.now()
-                if dt.hour == 0 and dt.minute == 1 and dt.second < READ_INTERVAL_SEC:
-                    cleanupData()
-
-            except Exception:
-                log.error(f"Main loop error: {traceback.format_exc()}")
-                client = None
-        
-            # Sleep but check every second for shutdown signal
-            for _ in range(READ_INTERVAL_SEC):
-                if not keep_running: 
-                    break
-                time.sleep(1)
             
-    except KeyboardInterrupt:
-        log.info("Stopped by user.")
-    finally:
-        # Final cleanup on script exit (SIGTERM / SIGINT)
-        log.info("Cleanup before script exit...")
-        if client:
-            try:
-                client.close()
-                log.info("Modbus connection closed successfully.")
-            except:
-                pass
-        log.info("Script exit.")
+            # 3. NIGHTLY CLEANUP
+            dt = datetime.now()
+            if dt.hour == 0 and dt.minute == 1 and dt.second < READ_INTERVAL_SEC:
+                cleanupData()
+
+        except Exception:
+            # Gglobal protection
+            log.error(f"Critical Main Loop Error: {traceback.format_exc()}")
+            time.sleep(5) 
+
+        # 4. SLEEP LOGIC
+        for _ in range(READ_INTERVAL_SEC):
+            if not keep_running: 
+                break
+            time.sleep(1)
+
+    # FINAL EXIT
+    log.info("Cleanup before script exit...")
+    if client:
+        try:
+            client.close()
+            log.info("Modbus connection closed.")
+        except:
+            pass
+    log.info("Script exit.")
 
 if __name__ == "__main__":
     main()
