@@ -79,6 +79,7 @@ def readData(client, address, size, typ):
 def cleanupData():
     log.info("Starting cleanup of old data (older than 72h)...")
     con = chargemanagercommon.getDBConnection()
+    start_time = time.perf_counter()
     try:
         cur = con.cursor()
         cur.execute("DELETE FROM modbus WHERE timestamp < datetime('now','-72 hour','localtime')")
@@ -86,7 +87,8 @@ def cleanupData():
         cur.execute("VACUUM")
         con.commit()
         cur.close()
-        log.info("Cleanup successful.")
+        duration = time.perf_counter() - start_time
+        log.info(f"Cleanup successful. Duration: {duration:.3f}s")
     except Exception:
         log.error(f"Cleanup failed: {traceback.format_exc()}") 
     finally:
@@ -165,6 +167,7 @@ def main():
     client = None
     last_used_ip = None
     last_used_port = None
+    last_cleanup_day = None
 
     while keep_running:
         try:
@@ -209,8 +212,9 @@ def main():
             
             # 3. NIGHTLY CLEANUP
             dt = datetime.now()
-            if dt.hour == 0 and dt.minute == 1 and dt.second < READ_INTERVAL_SEC:
+            if dt.hour == 0 and dt.minute == 1 and last_cleanup_day != dt.day:
                 cleanupData()
+                last_cleanup_day = dt.day
 
         except Exception:
             # Gglobal protection

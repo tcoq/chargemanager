@@ -303,6 +303,7 @@ def main():
     os.environ['TZ'] = 'Europe/Berlin'
     time.tzset()
     log.info(f"Module {__name__} started.")
+    last_cleanup_day = None
 
     try:
         while True:
@@ -320,10 +321,12 @@ def main():
 
                 now = datetime.now()
                 # clean data at 00:00:<19
-                if now.hour == 0 and now.minute == 0 and now.second < 19:
-                    start = time.process_time()
+                if now.hour == 0 and last_cleanup_day != now.day:
+                    start = time.time.perf_counter()
                     cleanupData()
-                    log.info(f"cleanupData duration: {time.process_time() - start:.3f}s")
+                    last_cleanup_day = now.day
+                    duration = time.perf_counter() - start
+                    log.info(f"cleanupData duration: {duration:.3f}s")
 
             except Exception:
                 log.error(traceback.format_exc())
