@@ -111,10 +111,13 @@ class NrgkickController(WallboxBase):
         
     def readData(self):
         self.readSettings()
-
+        
         chargingpower = 0
         ischarging = 0
+        temperature = 0
+        phases = 0
         self.available = -1
+        
         try:
             try:
                 resp = requests.get(url=self.measurements_url, timeout=5)
@@ -150,14 +153,14 @@ class NrgkickController(WallboxBase):
                 # nrgkick is not connected but bluetooth device is available
                 pass
 
-            timestamp = general['Timestamp']
-            # convert value from kilowatt to watt
-            chargingpower = int(float(general['ChargingPower']) * 1000)
-            temperature = general['TemperatureMainUnit']
+            timestamp = general.get('Timestamp', 'N/A')
+            chargingpower = int(float(general.get('ChargingPower', 0)) * 1000)
+            temperature = general.get('TemperatureMainUnit', 0)
 
-            phase1 = general['VoltagePhase'][0]
-            phase2 = general['VoltagePhase'][1]
-            phase3 = general['VoltagePhase'][2]
+            voltage_phases = general.get('VoltagePhase', [0, 0, 0])
+            phase1 = voltage_phases[0]
+            phase2 = voltage_phases[1]
+            phase3 = voltage_phases[2]
 
             log.debug(timestamp)
             log.debug(chargingpower)

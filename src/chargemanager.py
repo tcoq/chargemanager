@@ -322,7 +322,7 @@ def main():
                 now = datetime.now()
                 # clean data at 00:00:<19
                 if now.hour == 0 and last_cleanup_day != now.day:
-                    start = time.time.perf_counter()
+                    start = time.perf_counter()
                     cleanupData()
                     last_cleanup_day = now.day
                     duration = time.perf_counter() - start
