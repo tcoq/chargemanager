@@ -162,62 +162,63 @@ def getActiveWallboxId():
 # Calculating the right power range for a given power-value
 #
 def getPowerRange(currentAvailablePower):
+    """
+    Translates raw available PV power into stable power range steps.
+    Perfectly aligned with the fixed values in getCurrent().
+    """
     new_availablePowerRange = 0
 
-    if (currentAvailablePower <= 500):
-        new_availablePowerRange = 0
-    if (currentAvailablePower > 500 and currentAvailablePower <= 800):
-        new_availablePowerRange = 500 
-    if (currentAvailablePower > 800 and currentAvailablePower <= 1100):
-        new_availablePowerRange = 800 
-    if (currentAvailablePower > 1100 and currentAvailablePower <= 1500):
-        new_availablePowerRange = 1100             
-    if (currentAvailablePower > 1500 and currentAvailablePower <= 1700):
-        new_availablePowerRange = 1400 # here we can start charging 1 phase
-    if (currentAvailablePower > 1700 and currentAvailablePower <= 1900):
-        new_availablePowerRange = 1700
-    if (currentAvailablePower > 1900 and currentAvailablePower <= 2100):
-        new_availablePowerRange = 1900
-    if (currentAvailablePower > 2100 and currentAvailablePower <= 2350):
-        new_availablePowerRange = 2100
-    if (currentAvailablePower > 2350 and currentAvailablePower <= 2600):
-        new_availablePowerRange = 2350
-    if (currentAvailablePower > 2600 and currentAvailablePower <= 2800):
-        new_availablePowerRange = 2600
-    if (currentAvailablePower > 2800 and currentAvailablePower <= 3050):
-        new_availablePowerRange = 2800 # here we can start charging 2 phase
-    if (currentAvailablePower > 3050 and currentAvailablePower <= 3300):
-        new_availablePowerRange = 3050
-    if (currentAvailablePower > 3300 and currentAvailablePower <= 3500):
-        new_availablePowerRange = 3300
-    if (currentAvailablePower > 3500 and currentAvailablePower <= 3800):
-        new_availablePowerRange = 3500
-    if (currentAvailablePower > 3800 and currentAvailablePower <= 4200):
-        new_availablePowerRange = 3800
-    if (currentAvailablePower > 4200 and currentAvailablePower <= 4650):
-        new_availablePowerRange = 4200
-    if (currentAvailablePower > 4650 and currentAvailablePower <= 5100):
-        new_availablePowerRange = 4650 # here we can start charging 3 phase
-    if (currentAvailablePower > 5100 and currentAvailablePower <= 5600):
-        new_availablePowerRange = 5100
-    if (currentAvailablePower > 5600 and currentAvailablePower <= 6050):
-        new_availablePowerRange = 5600
-    if (currentAvailablePower > 6050 and currentAvailablePower <= 6500):
-        new_availablePowerRange = 6050
-    if (currentAvailablePower > 6500 and currentAvailablePower <= 6950):
-        new_availablePowerRange = 6500
-    if (currentAvailablePower > 6950 and currentAvailablePower <= 7600):
-        new_availablePowerRange = 6950
-    if (currentAvailablePower > 7600 and currentAvailablePower <= 8300):
-        new_availablePowerRange = 7500 
-    if (currentAvailablePower > 8300 and currentAvailablePower <= 9000):
-        new_availablePowerRange = 8000 
-    if (currentAvailablePower > 9000 and currentAvailablePower <= 9700):
-        new_availablePowerRange = 9000
-    if (currentAvailablePower > 9700 and currentAvailablePower <= 10400):
-        new_availablePowerRange = 9500 
-    if (currentAvailablePower > 10400):
-        new_availablePowerRange = 10000
+    # 1. Range: Very low power / Standby
+    if currentAvailablePower <= 1500:
+        if currentAvailablePower <= 600:
+            new_availablePowerRange = 0
+        elif currentAvailablePower <= 1100:
+            new_availablePowerRange = 800
+        else:
+            new_availablePowerRange = 1100
+
+    # 2. Range: Low power (mostly 1-phase thresholds)
+    elif currentAvailablePower <= 3000:
+        if currentAvailablePower <= 1800:
+            new_availablePowerRange = 1400  # Matches 1-phase 6A
+        elif currentAvailablePower <= 2200:
+            new_availablePowerRange = 1900  # Matches 1-phase 8A
+        elif currentAvailablePower <= 2600:
+            new_availablePowerRange = 2350  # Matches 1-phase 10A
+        else:
+            new_availablePowerRange = 2800  # Matches 1-phase 12A / 2-phase 6A
+
+    # 3. Range: Medium power (2-phase and early 3-phase)
+    elif currentAvailablePower <= 5000:
+        if currentAvailablePower <= 3500:
+            new_availablePowerRange = 3300  # Matches 1-phase 14A / 2-phase 7A
+        elif currentAvailablePower <= 4200:
+            new_availablePowerRange = 3800  # Matches 2-phase 8A
+        elif currentAvailablePower <= 4700:
+            new_availablePowerRange = 4500  # Matches 3-phase 6A
+        else:
+            new_availablePowerRange = 5000  # Matches 3-phase 7A
+
+    # 4. Range: High power (3-phase territory)
+    elif currentAvailablePower <= 7500:
+        if currentAvailablePower <= 5800:
+            new_availablePowerRange = 5500  # Matches 3-phase 8A
+        elif currentAvailablePower <= 6800:
+            new_availablePowerRange = 6000  # Matches 3-phase 9A
+        else:
+            new_availablePowerRange = 7000  # Matches 3-phase 10A
+
+    # 5. Range: Maximum power
+    else:
+        if currentAvailablePower <= 8500:
+            new_availablePowerRange = 8000  # Matches 3-phase 12A
+        elif currentAvailablePower <= 9300:
+            new_availablePowerRange = 9000  # Matches 3-phase 13A
+        elif currentAvailablePower <= 10200:
+            new_availablePowerRange = 9500  # Matches 3-phase 14A
+        else:
+            new_availablePowerRange = 10000 # Matches 3-phase 15A
+
     return new_availablePowerRange
 #
 # Calculating the right power current for a given powerrange
