@@ -27,7 +27,7 @@ class Kebap30Controller(WallboxBase):
         self.locked = False
         self.last_set_limit_a = 0
         self.available = 0 
-        self._last_is_charging = False
+        self._last_is_charging = True
         self.last_data = self._get_empty_data()
         self.low_power_count = 0
         self.last_valid_power = 0
@@ -114,7 +114,9 @@ class Kebap30Controller(WallboxBase):
                     self.low_power_count += 1
                     # only set to off if we read two times "False"
                     if self.low_power_count >= 2:
-                        self._last_is_charging = (keba_state == 3)
+                        # state 2 = ready
+                        # state 3 = charging
+                        self._last_is_charging = (keba_state in [2, 3])
                     else:
                         # hold value on True
                         self._last_is_charging = True
@@ -178,10 +180,12 @@ class Kebap30Controller(WallboxBase):
             target_a = max(6, min(32, target_a))
 
             if startCharging:
-                # 'ena 1' enables the charging output, 'curr' sets Amps (mA format)
-                sock.sendto(b"ena 1", (self.ip_address, self.UDP_PORT))
-                time.sleep(0.1)
+                # sent power limit 
                 sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))
+                time.sleep(0.8)
+                # 'ena 1' enables the charging output to start charging
+                sock.sendto(b"ena 1", (self.ip_address, self.UDP_PORT))
+
                 self.last_set_limit_a = target_a
                 log.info(f"KEBA ID 3: Start Command ({target_a}A) sent via UDP.")
             else:
