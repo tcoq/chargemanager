@@ -43,6 +43,23 @@ class Kebap30Controller(WallboxBase):
         if not self.ip_address or self.ip_address == "0.0.0.0":
             self.ip_address = "192.168.178.153"
 
+    def _smooth_power(self, new_raw_watt):
+        alpha = 0.3
+        
+        # calc diff 
+        diff = abs(new_raw_watt - self.last_valid_power)
+        
+        # if diff is huge (> 800W), 
+        # take new value, to react faster
+        if diff > 800:
+            alpha = 0.8  # nearly fast jump
+            
+        if self.last_valid_power == 0 and new_raw_watt > 0:
+            return int(round(new_raw_watt / 100.0) * 100)
+            
+        smoothed = (alpha * new_raw_watt) + ((1 - alpha) * self.last_valid_power)
+        return int(round(smoothed / 100.0) * 100)
+
     def readData(self):
         """
         Fetches telemetry from the wallbox. 
@@ -80,7 +97,9 @@ class Kebap30Controller(WallboxBase):
                     if res_p and not res_p.isError():
                         # High-word and low-word bit shifting for 32-bit value
                         power_mw = (res_p.registers[0] << 16) | res_p.registers[1]
-                        self.last_valid_power = int(power_mw / 1000)
+                        raw_watt = int(power_mw / 1000)
+                        # Apply damping to smooth out the power reading
+                        self.last_valid_power = self._smooth_power(raw_watt)
                 except Exception:
                     log.debug("KEBA: Power register 1020 inaccessible")
                 
@@ -100,11 +119,27 @@ class Kebap30Controller(WallboxBase):
                         # hold value on True
                         self._last_is_charging = True
                         pass
+                
+                # --- ROBUST PHASE DETECTION ---
+                detected_phases = 1
+                
+                # We check for 6A minimum and charging status
+                if self._last_is_charging and self.last_set_limit_a >= 6:
+                    # Calculation: Power / (Voltage * Amps)
+                    # Using 225V as a slightly lower base makes it more robust 
+                    # against under-voltage and prevents flipping to a lower phase count.
+                    calc_phases = real_power / (225 * self.last_set_limit_a)
+                    
+                    # Rounding to the nearest whole number
+                    detected_phases = int(round(calc_phases))
+                    
+                    # Safety clamp
+                    detected_phases = max(1, min(self.max_phases, detected_phases))
 
                 self.last_data.update({
                     "chargingpower": max(0, real_power),
                     # set to fixed two phases because keba register do not provide phase infos
-                    "phases": 2,
+                    "phases": int(detected_phases),
                     "ischarging": 1 if self._last_is_charging else 0,
                     "chargingcurrent": int(self.last_set_limit_a),
                     "temperature": 0,
