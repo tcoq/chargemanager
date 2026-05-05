@@ -112,15 +112,26 @@ class Kebap30Controller(WallboxBase):
                     self._last_is_charging = True
                 else:
                     self.low_power_count += 1
-                    # only set to off if we read two times "False"
                     if self.low_power_count >= 2:
-                        # state 2 = ready
-                        # state 3 = charging
-                        self._last_is_charging = (keba_state in [2, 3])
+                        # LOGIK:
+                        # Wenn wir echte Leistung sehen (oben), ist ischarging = True.
+                        # Wenn keine Leistung fließt (hier):
+                        # 1. Ist die Box im State 3 (Laden)? -> Dann True (vielleicht lädt das Auto nur sehr langsam)
+                        # 2. Ist die Box im State 2 (Bereit)? 
+                        #    -> Nur True, wenn der Manager gerade aktiv eine Session will (activeChargingSession)
+                        #    -> Sobald der Manager die Session beendet (startCharging=False), 
+                        #       wird hier False gemeldet und das Log geschrieben.
+                        
+                        if keba_state == 3:
+                            self._last_is_charging = True
+                        elif keba_state == 2 and self.activeChargingSession:
+                            # Wir sind im Handshake/Warten-Modus während einer aktiven Steuerung
+                            self._last_is_charging = True
+                        else:
+                            # State 1 (nicht verbunden) oder State 2 ohne aktive Anforderung
+                            self._last_is_charging = False
                     else:
-                        # hold value on True
                         self._last_is_charging = True
-                        pass
                 
                 # --- ROBUST PHASE DETECTION ---
                 detected_phases = 1
@@ -178,15 +189,13 @@ class Kebap30Controller(WallboxBase):
         try:
             target_a = int(round(float(currentValue)))
             target_a = max(6, min(32, target_a))
-
+            # sent power limit 
+            sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))
+            
             if startCharging:
-                # sent power limit 
-                sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))
                 time.sleep(0.8)
                 # 'ena 1' enables the charging output to start charging
                 sock.sendto(b"ena 1", (self.ip_address, self.UDP_PORT))
-
-                self.last_set_limit_a = target_a
                 log.info(f"KEBA ID 3: Start Command ({target_a}A) sent via UDP.")
             else:
                 # Ramping down current before disabling output
@@ -196,6 +205,7 @@ class Kebap30Controller(WallboxBase):
                 self.last_set_limit_a = 0
                 log.info("KEBA ID 3: Stop Command sent via UDP.")
             
+            self.last_set_limit_a = target_a
             return {"errorcode": 0}
         except Exception as e:
             log.error(f"KEBA UDP Command failed: {e}")
