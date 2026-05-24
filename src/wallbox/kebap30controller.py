@@ -193,10 +193,11 @@ class Kebap30Controller(WallboxBase):
 
             else:
                 if self._session_active:
+                    self.last_set_limit_a = target_a
                     # Cable is still connected: throttle to zero but keep the RFID
                     # transaction open so charging can resume without a new card tap.
                     # Do NOT send ena 0 here — it would terminate the transaction.
-                    sock.sendto(b"curr 0", (self.ip_address, self.UDP_PORT))
+                    sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))  # ← send target_a 
                     # last_set_limit_a is intentionally kept at its previous value
                     # to prevent division by zero in phase detection during the pause.
                     self._charging_requested = False
