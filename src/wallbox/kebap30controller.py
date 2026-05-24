@@ -183,14 +183,15 @@ class Kebap30Controller(WallboxBase):
 
             if startCharging:
                 sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))
-                time.sleep(0.8)
-                # ena 1 is safe to send even if a session is already open
-                sock.sendto(b"ena 1", (self.ip_address, self.UDP_PORT))
+                if not self._session_active:
+                    time.sleep(0.8)
+                    sock.sendto(b"ena 1", (self.ip_address, self.UDP_PORT))
+                    log.info(f"KEBA ID 3: Start Command ({target_a}A) sent via UDP.")
+                else:
+                    log.info(f"KEBA ID 3: Current adjusted to {target_a}A via UDP.")
                 self.last_set_limit_a = target_a
                 self._charging_requested = True
                 self._session_active = True
-                log.info(f"KEBA ID 3: Start Command ({target_a}A) sent via UDP.")
-
             else:
                 if self._session_active:
                     self.last_set_limit_a = target_a
