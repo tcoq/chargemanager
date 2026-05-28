@@ -20,7 +20,7 @@ class Kebap30Controller(WallboxBase):
 
     def __init__(self):
         self.ip_address = None
-        self.max_phases = 3
+        self.max_phases = 2
         self.retryCount = 0
         self.activeChargingSession = False
         self.locked = False
@@ -182,10 +182,15 @@ class Kebap30Controller(WallboxBase):
             target_a = max(6, min(32, target_a))
 
             if startCharging:
-                sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))
                 if not self._session_active:
-                    time.sleep(0.8)
                     sock.sendto(b"ena 1", (self.ip_address, self.UDP_PORT))
+                    time.sleep(0.8)
+                    sock.sendto(f"currtime {target_a * 1000} 0".encode(), (self.ip_address, self.UDP_PORT))
+                    try:
+                        response, _ = sock.recvfrom(512)
+                        log.info(f"KEBA UDP response: {response.decode()}")
+                    except socket.timeout:
+                        log.warning("KEBA: No UDP response received (timeout)")
                     log.info(f"KEBA ID 3: Start Command ({target_a}A) sent via UDP.")
                 else:
                     log.info(f"KEBA ID 3: Current adjusted to {target_a}A via UDP.")
@@ -198,7 +203,7 @@ class Kebap30Controller(WallboxBase):
                     # Cable is still connected: throttle to zero but keep the RFID
                     # transaction open so charging can resume without a new card tap.
                     # Do NOT send ena 0 here — it would terminate the transaction.
-                    sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))  # ← send target_a 
+                    sock.sendto(f"currtime {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))  # ← send target_a 
                     # last_set_limit_a is intentionally kept at its previous value
                     # to prevent division by zero in phase detection during the pause.
                     self._charging_requested = False
@@ -206,7 +211,7 @@ class Kebap30Controller(WallboxBase):
                 else:
                     # No active session (cable pulled or clean shutdown):
                     # ramp down current first, then disable output cleanly.
-                    sock.sendto(b"curr 0", (self.ip_address, self.UDP_PORT))
+                    sock.sendto(b"currtime 0 0", (self.ip_address, self.UDP_PORT))
                     time.sleep(0.1)
                     sock.sendto(b"ena 0", (self.ip_address, self.UDP_PORT))
                     self.last_set_limit_a = 0
