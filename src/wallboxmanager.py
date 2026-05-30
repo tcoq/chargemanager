@@ -199,7 +199,7 @@ def main():
 
                     elif (device.getRetryCount() > 3):
                         device.setRetryCount(4)
-                        time.sleep(2)
+                        time.sleep(3)
 
             # --- 7. CONSOLIDATED LOGGING (ONCE PER CYCLE) ---
             # This writes exactly one entry into chargelog representing the whole system.

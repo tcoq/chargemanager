@@ -88,7 +88,7 @@ class Kebap30Controller(WallboxBase):
                 # or lack of RFID auth can cause register read errors.
                 try:
                     res_s = client.read_holding_registers(1001, count=1, slave=self.UNIT_ID)
-                    time.sleep(0.1)
+                    time.sleep(0.8)
                     if res_s and not res_s.isError():
                         keba_state = res_s.registers[0]
                 except Exception:
@@ -97,7 +97,7 @@ class Kebap30Controller(WallboxBase):
                 # Fetch Active Power (Register 1020, 32-bit value in mW).
                 try:
                     res_p = client.read_holding_registers(1020, count=2, slave=self.UNIT_ID)
-                    time.sleep(0.1)
+                    time.sleep(0.8)
                     if res_p and not res_p.isError():
                         power_mw = (res_p.registers[0] << 16) | res_p.registers[1]
                         raw_watt = int(power_mw / 1000)
@@ -180,45 +180,44 @@ class Kebap30Controller(WallboxBase):
         try:
             target_a = int(round(float(currentValue)))
             target_a = max(6, min(32, target_a))
-
+            # ... inside setCharging ...
             if startCharging:
                 if not self._session_active:
+                    log.info(f"KEBA ID 3: Sending ENA 1 and Initial Current {target_a}A")
                     sock.sendto(b"ena 1", (self.ip_address, self.UDP_PORT))
-                    time.sleep(0.8)
-                    sock.sendto(f"currtime {target_a * 1000} 0".encode(), (self.ip_address, self.UDP_PORT))
-                    try:
-                        response, _ = sock.recvfrom(512)
-                        log.info(f"KEBA UDP response: {response.decode()}")
-                    except socket.timeout:
-                        log.warning("KEBA: No UDP response received (timeout)")
-                    log.info(f"KEBA ID 3: Start Command ({target_a}A) sent via UDP.")
+                    time.sleep(0.6)
+                    # GEÄNDERT: curr statt currtime, keine " 0" am Ende
+                    sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))
+                    self._session_active = True
                 else:
-                    log.info(f"KEBA ID 3: Current adjusted to {target_a}A via UDP.")
+                    log.info(f"KEBA ID 3: Sending adjustment to {target_a}A via UDP.")
+                    # GEÄNDERT: curr statt currtime, keine " 0" am Ende
+                    sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))
+                
+                try:
+                    response, _ = sock.recvfrom(512)
+                    log.debug(f"KEBA UDP response: {response.decode()}")
+                except socket.timeout:
+                    log.warning("KEBA: No UDP response received (timeout) - Command was still sent")
+
                 self.last_set_limit_a = target_a
                 self._charging_requested = True
-                self._session_active = True
             else:
                 if self._session_active:
                     self.last_set_limit_a = target_a
-                    # Cable is still connected: throttle to zero but keep the RFID
-                    # transaction open so charging can resume without a new card tap.
-                    # Do NOT send ena 0 here — it would terminate the transaction.
-                    sock.sendto(f"currtime {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))  # ← send target_a 
-                    # last_set_limit_a is intentionally kept at its previous value
-                    # to prevent division by zero in phase detection during the pause.
+                    # GEÄNDERT: Hier wird bei Pause nun einfach auf 6A (oder 0A, je nachdem was target_a ist) per curr geregelt
+                    sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))  
                     self._charging_requested = False
-                    log.info("KEBA ID 3: Pause via curr 0 (session kept open).")
+                    log.info(f"KEBA ID 3: Pause via curr {target_a}A (session kept open).")
                 else:
-                    # No active session (cable pulled or clean shutdown):
-                    # ramp down current first, then disable output cleanly.
-                    sock.sendto(b"currtime 0 0", (self.ip_address, self.UDP_PORT))
-                    time.sleep(0.1)
+                    # GEÄNDERT: Sauberer Stop mit curr 0 statt currtime 0 0
+                    sock.sendto(b"curr 0", (self.ip_address, self.UDP_PORT))
+                    time.sleep(0.3)
                     sock.sendto(b"ena 0", (self.ip_address, self.UDP_PORT))
                     self.last_set_limit_a = 0
                     self._charging_requested = False
                     self._session_active = False
                     log.info("KEBA ID 3: Stop Command sent via UDP (session closed).")
-
             return {"errorcode": 0}
 
         except Exception as e:
