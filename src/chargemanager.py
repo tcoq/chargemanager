@@ -140,7 +140,6 @@ def _updateBatteryProtection(currentBatteryPower, chargingPossible, minCharge):
         # break waiting for stable power to force immediate recalculation
         powerChangeCount = 10000
 
-        # stop charging only if sun is really gone and mode is not already FAST or SLOW
         currentMode = chargemanagercommon.getChargemode()
         if (not chargingPossible
                 and currentMode not in (chargemanagercommon.FAST_MODE, chargemanagercommon.SLOW_MODE)):
@@ -262,9 +261,15 @@ def calcEfficientChargingStrategy():
     con = chargemanagercommon.getDBConnection()
     try:
         cur = con.cursor()
+        currentMode = chargemanagercommon.getChargemode()
+        # in SLOW or FAST charging should go on
+        if currentMode in (chargemanagercommon.SLOW_MODE, chargemanagercommon.FAST_MODE):
+            effective_charging_possible = 1
+        else:
+            effective_charging_possible = int(chargingPossible)
         cur.execute(
             "UPDATE controls SET availablePowerRange=?, chargingPossible=?",
-            (availablePowerRange, int(chargingPossible))
+            (availablePowerRange, effective_charging_possible)
         )
         con.commit()
         cur.close()
