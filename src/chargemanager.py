@@ -25,6 +25,7 @@ batteryProtActive   = False
 cloudyCounter       = 0
 cloudyModeActive    = False
 canSwitchToTracked  = True   # one-time flag per charging session: SLOW → TRACKED
+_lastMode           = 0
 
 
 def readSettings():
@@ -195,7 +196,14 @@ def _readPowerData():
 # Calculates the efficient charging strategy
 #
 def calcEfficientChargingStrategy():
-    global availablePowerRange, powerChangeCount, canSwitchToTracked
+    global availablePowerRange, powerChangeCount, canSwitchToTracked, _lastMode
+
+    currentModeNow = chargemanagercommon.getChargemode()
+    if (currentModeNow in (chargemanagercommon.SLOW_MODE, chargemanagercommon.FAST_MODE)
+            and currentModeNow != _lastMode):
+        log.info(f"Mode switch to {currentModeNow} detected, resetting power stabilization.")
+        powerChangeCount = 10000
+    _lastMode = currentModeNow
 
     newRange, prevRange, soc, batPower = _readPowerData()
 
@@ -304,7 +312,7 @@ def cleanupData():
 # Main, init and repeat reading
 #
 def main():
-    global canSwitchToTracked
+    global canSwitchToTracked, _lastMode
     os.environ['TZ'] = 'Europe/Berlin'
     time.tzset()
     log.info(f"Module {__name__} started.")
@@ -323,6 +331,7 @@ def main():
                 else:
                     # reset flag if charging stopped so next session can switch to tracked again
                     canSwitchToTracked = True
+                    _lastMode = chargemanagercommon.DISABLED_MODE
 
                 now = datetime.now()
                 # clean data at 00:00:<19

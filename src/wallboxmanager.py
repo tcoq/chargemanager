@@ -100,6 +100,9 @@ def main():
                             lockeddevices.set_locked(True)
                         else:
                             lockeddevices.set_locked(False)
+                elif not any(d.isCharging() for d in devices):
+                    # nobody is charging any more -> unlock 
+                    device.set_locked(False)
 
                 # 5. CONTROL LOGIC (Only proceed if device is available and not locked)
                 if (device.isAvailable() and not device.is_locked()):
@@ -163,16 +166,21 @@ def main():
                                     log.info(f"Successfully stopped: ID {device.getID()}")
                                     device.setActiveChargingSession(False)
                                 break
-                        
+
                         if not successful:
-                            any_box_charging = any(d.isCharging() for d in devices)
-                            if not any_box_charging:
-                                log.info(f"Failed to initiate charge on ID {device.getID()}. Assuming vehicle is full. Disabling.")
-                                if (chargemode != chargemanagercommon.DISABLED_MODE):
-                                    chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
-                                    device.setCharging(chargePowerValue, False)
-                                    device.setActiveChargingSession(False)
-                                    time.sleep(10)
+                            if device.isActiveChargingSession():
+                                # Box hatte zuvor eine bestätigte Ladesession -> Fehlschlag ist verdächtig (voll/ausgesteckt)
+                                any_box_charging = any(d.isCharging() for d in devices)
+                                if not any_box_charging:
+                                    log.info(f"Failed to restart charge on ID {device.getID()}. Assuming vehicle is full. Disabling.")
+                                    if (chargemode != chargemanagercommon.DISABLED_MODE):
+                                        chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
+                                        device.setCharging(chargePowerValue, False)
+                                        device.setActiveChargingSession(False)
+                                        time.sleep(10)
+                            else:
+                                # Box hatte nie eine Session -> einfach kein Auto hier, nichts tun
+                                log.debug(f"ID {device.getID()}: Kein Fahrzeug erkannt, Startversuch wie erwartet erfolglos.")
 
                     device.setRetryCount(0)
                 

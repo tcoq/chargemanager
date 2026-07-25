@@ -204,9 +204,9 @@ class Kebap30Controller(WallboxBase):
                 self._charging_requested = True
             else:
                 if self._session_active:
+                    target_a = 0   # statt max(6, min(32, target_a))
+                    sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))
                     self.last_set_limit_a = target_a
-                    # GEÄNDERT: Hier wird bei Pause nun einfach auf 6A (oder 0A, je nachdem was target_a ist) per curr geregelt
-                    sock.sendto(f"curr {target_a * 1000}".encode(), (self.ip_address, self.UDP_PORT))  
                     self._charging_requested = False
                     log.info(f"KEBA ID 3: Pause via curr {target_a}A (session kept open).")
                 else:
