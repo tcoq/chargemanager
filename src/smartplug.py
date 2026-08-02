@@ -30,6 +30,7 @@ ALWAYS_PLUG_START_TO = "00:00"
 PLUG_START_FROM_SOC = 0
 PLUG_ALLOWED_USE_HOUSE_BATTERY = 0
 PLUG_PORT = 9999
+PLUG_ENABLED = 0
 
 def readSettings():
     global PLUG_IP,PLUG_ON_POWER, PLUG_START_FROM_SOC, PLUG_ENABLED, PV_PLUG_START_FROM, PV_PLUG_START_TO, ALWAYS_PLUG_START_FROM, ALWAYS_PLUG_START_TO, PLUG_ALLOWED_USE_HOUSE_BATTERY
@@ -184,7 +185,7 @@ def main():
                 
                 actualPlugPower = int(getPower())
 
-                nrgKickPower = chargemanagercommon.isNrgkickCharging()
+                nrgKickPower = chargemanagercommon.isWallboxCharging(chargemanagercommon.getActiveWallboxId())
                 # check if NRGKick is charging the car
                 if (nrgKickPower > 0):
                     # avoid turning smart plug on in FAST charging mode

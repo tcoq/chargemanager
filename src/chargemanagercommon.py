@@ -4,7 +4,6 @@
 # Chargemanagercommon is a module for shared resource access like
 # database access or project initialization
 # --------------------------------------------------------------------------- #
-from pickle import FALSE
 import threading
 import logging
 import sqlite3 

@@ -59,6 +59,7 @@ def readData(client, address, size, typ):
             log.error(f"No registers in response for address {address}")
             raise IOError(f"No registers in response at address {address}")
 
+        decoder = None
         if typ == "int16" or typ == "uint16":
             decoder = BinaryPayloadDecoder.fromRegisters(request.registers, byteorder=Endian.BIG)
         if typ in ["uint32", "float32", "int64", "int32"]:
