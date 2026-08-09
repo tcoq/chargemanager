@@ -125,6 +125,32 @@ def renderPage():
         trackedcharging = "checked"        
 
     return render_template('index.html', row = row, trackedcharging = trackedcharging , fastcharging = fastcharging, slowcharging=slowcharging, controls=controls, wallboxes=wallboxes, disabledcharging=disabledcharging, secret=secret, tempdata=getJSONForSolaredgeData())
+
+@server.route("/api/status")
+def getApiStatus():
+    status = checkAuth(request)
+    if (status == -1):
+        return "FORBIDDEN", 403
+
+    con = chargemanagercommon.getDBConnection()
+    try:
+        cur = con.cursor()
+        cur.execute("SELECT pvprod, soc FROM modbus ORDER BY timestamp DESC LIMIT 1")
+        row = cur.fetchone()
+        cur.close()
+    except Exception:
+        log.error(traceback.format_exc())
+        return {"error": "Database error"}, 500
+    finally:
+        con.close()
+
+    if row is None:
+        return {"error": "No data available"}, 404
+
+    return {
+        "pvprod": row[0],
+        "soc": row[1]
+    }
                
 @server.route("/chargemode", methods=['POST', 'GET'])
 def setChargemode():   
