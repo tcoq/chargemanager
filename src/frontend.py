@@ -39,12 +39,14 @@ def readSettings():
 # -1 = forbidden because request-secret information are invailid
 #
 def checkAuth(request):
+    readSettings()
     if (int(AUTHENTICATION_ENABLED) == 1):
         key = request.args.get("secret")
         if (key == None or key != SECRET_KEY):
             # brute force protection
             time.sleep(10)
             return -1
+        return 1
     else:
        return 0
 
@@ -225,13 +227,13 @@ def saveForm():
         chargemanagercommon.saveSettings(data)
 
         # force to reload setting in all modules
-        chargemanagercommon.SOLAREDGE_SETTINGS_DIRTY == True
-        chargemanagercommon.NRGKICK_SETTINGS_DIRTY == True
-        chargemanagercommon.PULSAR_SETTINGS_DIRTY == True
-        chargemanagercommon.SMARTPLUG_SETTINGS_DIRTY == True
-        chargemanagercommon.FRONTEND_SETTINGS_DIRTY == True
-        chargemanagercommon.CHARGEMANAGER_SETTINGS_DIRTY == True
-        chargemanagercommon.KEBAP30_SETTINGS_DIRTY == True
+        chargemanagercommon.SOLAREDGE_SETTINGS_DIRTY = True
+        chargemanagercommon.NRGKICK_SETTINGS_DIRTY = True
+        chargemanagercommon.PULSAR_SETTINGS_DIRTY = True
+        chargemanagercommon.SMARTPLUG_SETTINGS_DIRTY = True
+        chargemanagercommon.FRONTEND_SETTINGS_DIRTY = True
+        chargemanagercommon.CHARGEMANAGER_SETTINGS_DIRTY = True
+        chargemanagercommon.KEBAP30_SETTINGS_DIRTY = True
     except:
         log.error(traceback.format_exc()) 
 
