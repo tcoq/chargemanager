@@ -2,10 +2,8 @@
 #
 # --------------------------------------------------------------------------- #
 # Module reads every 15 seconds values from Solaredge inverter and writes them to SQLLite database
-# Optimized for Pymodbus 3.x and high stability.
+# Optimized for Pymodbus 3.15.x and high stability.
 # --------------------------------------------------------------------------- #
-from pymodbus.constants import Endian
-from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.client import ModbusTcpClient as ModbusClient
 import math
 import ctypes
@@ -28,6 +26,20 @@ SOLAREDGE_MODBUS_PORT = 0
 READ_INTERVAL_SEC = 12
 keep_running = True
 
+# pymodbus >= 3.9 removed BinaryPayloadDecoder; convert_from_registers() is the
+# replacement. Word order "little" reproduces the old wordorder=Endian.LITTLE
+# behaviour for multi-register values; byte order within a word is always big
+# per Modbus spec (that's why there's no separate byteorder param anymore).
+DATATYPE_MAP = {
+    "int16": ModbusClient.DATATYPE.INT16,
+    "uint16": ModbusClient.DATATYPE.UINT16,
+    "int32": ModbusClient.DATATYPE.INT32,
+    "uint32": ModbusClient.DATATYPE.UINT32,
+    "float32": ModbusClient.DATATYPE.FLOAT32,
+    "int64": ModbusClient.DATATYPE.INT64,
+}
+WORD_ORDER_LITTLE_TYPES = ("uint32", "float32", "int64", "int32")
+
 def handle_exit(signum, frame):
     """ Handles external signals like SIGTERM from pkill or reboot """
     global keep_running
@@ -37,6 +49,14 @@ def handle_exit(signum, frame):
 # Register signals for clean exit
 signal.signal(signal.SIGTERM, handle_exit)
 signal.signal(signal.SIGINT, handle_exit)
+
+def interruptible_sleep(seconds):
+    """Sleeps in 1-second steps so a pending shutdown (keep_running=False)
+    is picked up immediately instead of after the full sleep duration."""
+    for _ in range(seconds):
+        if not keep_running:
+            break
+        time.sleep(1)
 
 def readSettings():
     global SOLAREDGE_INVERTER_IP, SOLAREDGE_MODBUS_PORT
@@ -49,7 +69,7 @@ def readSettings():
 
 def readData(client, address, size, typ):
     try:
-        request = client.read_holding_registers(address, count=size, slave=1)
+        request = client.read_holding_registers(address, count=size, device_id=1)
     
         if request.isError():
             log.error(f"Modbus error at address {address}: {request}")
@@ -59,19 +79,11 @@ def readData(client, address, size, typ):
             log.error(f"No registers in response for address {address}")
             raise IOError(f"No registers in response at address {address}")
 
-        decoder = None
-        if typ == "int16" or typ == "uint16":
-            decoder = BinaryPayloadDecoder.fromRegisters(request.registers, byteorder=Endian.BIG)
-        if typ in ["uint32", "float32", "int64", "int32"]:
-            decoder = BinaryPayloadDecoder.fromRegisters(request.registers, byteorder=Endian.BIG, wordorder=Endian.LITTLE)
-        
-        if typ == "int16": return decoder.decode_16bit_int()
-        if typ == "int32": return decoder.decode_32bit_int()
-        if typ == "int64": return decoder.decode_64bit_int()
-        if typ == "uint16": return decoder.decode_16bit_uint()
-        if typ == "uint32": return decoder.decode_32bit_uint()
-        if typ == "float32": return decoder.decode_32bit_float()
-        if typ == "raw": return request
+        if typ == "raw":
+            return request
+
+        word_order = "little" if typ in WORD_ORDER_LITTLE_TYPES else "big"
+        return client.convert_from_registers(request.registers, DATATYPE_MAP[typ], word_order=word_order)
         
     except Exception:
         log.error(f"Error in readData at {address}: {traceback.format_exc()}")
@@ -188,7 +200,7 @@ def main():
                     last_used_port = SOLAREDGE_MODBUS_PORT
                 else:
                     log.warning("Invalid IP configuration. Waiting...")
-                    time.sleep(10)
+                    interruptible_sleep(10)
                     continue
 
             # 2. COM BLOCK
@@ -220,13 +232,10 @@ def main():
         except Exception:
             # Gglobal protection
             log.error(f"Critical Main Loop Error: {traceback.format_exc()}")
-            time.sleep(5) 
+            interruptible_sleep(5)
 
         # 4. SLEEP LOGIC
-        for _ in range(READ_INTERVAL_SEC):
-            if not keep_running: 
-                break
-            time.sleep(1)
+        interruptible_sleep(READ_INTERVAL_SEC)
 
     # FINAL EXIT
     log.info("Cleanup before script exit...")
