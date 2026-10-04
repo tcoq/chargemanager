@@ -112,17 +112,35 @@ class Kebap30Controller(WallboxBase):
                 # This bypasses laggy status register updates or RFID-locked status bits.
                 if real_power > 500:
                     self.low_power_count = 0
+                    if hasattr(self, '_handshake_counter'):
+                        self._handshake_counter = 0
                     self._last_is_charging = True
                 else:
                     self.low_power_count += 1
                     if self.low_power_count >= 2:
                         if keba_state == 3:
                             # Box reports active charging state
+                            if hasattr(self, '_handshake_counter'):
+                                self._handshake_counter = 0
                             self._last_is_charging = True
                         elif keba_state == 2 and (self.activeChargingSession or self._charging_requested):
-                            # Handshake or ramp-up phase during an active control request
-                            self._last_is_charging = True
+                            # Handshake or ramp-up phase during an active control request.
+                            # We give the vehicle time to ramp up, but prevent an infinite loop 
+                            # if no car is physically plugged in.
+                            if not hasattr(self, '_handshake_counter'):
+                                self._handshake_counter = 0
+                            
+                            self._handshake_counter += 1
+                            if self._handshake_counter > 6:  # Timeout after ~20-25 seconds without actual power draw
+                                log.debug("KEBA: Handshake timeout in state 2 (No vehicle drawing power). Stopping request loop.")
+                                self._last_is_charging = False
+                                self._charging_requested = False
+                                self._handshake_counter = 0
+                            else:
+                                self._last_is_charging = True
                         else:
+                            if hasattr(self, '_handshake_counter'):
+                                self._handshake_counter = 0
                             # State 1 (not connected) or state 2 with no active request
                             self._last_is_charging = False
                             # Cable has been physically removed while box stayed online

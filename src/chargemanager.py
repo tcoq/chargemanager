@@ -199,9 +199,16 @@ def calcEfficientChargingStrategy():
     global availablePowerRange, powerChangeCount, canSwitchToTracked, _lastMode
 
     currentModeNow = chargemanagercommon.getChargemode()
-    if (currentModeNow in (chargemanagercommon.SLOW_MODE, chargemanagercommon.FAST_MODE)
-            and currentModeNow != _lastMode):
-        log.info(f"Mode switch to {currentModeNow} detected, resetting power stabilization.")
+    
+    # Check if this is an automatic switch between slow (2) and tracked (3),
+    # or a genuine manual mode change by the user.
+    is_auto_switch = (_lastMode in (chargemanagercommon.SLOW_MODE, chargemanagercommon.TRACKED_MODE) and
+                      currentModeNow in (chargemanagercommon.SLOW_MODE, chargemanagercommon.TRACKED_MODE))
+
+    if (currentModeNow in (chargemanagercommon.SLOW_MODE, chargemanagercommon.FAST_MODE, chargemanagercommon.TRACKED_MODE)
+            and currentModeNow != _lastMode
+            and not is_auto_switch):
+        log.info(f"Manual mode switch to {currentModeNow} detected, resetting power stabilization.")
         powerChangeCount = 10000
     _lastMode = currentModeNow
 
