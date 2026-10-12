@@ -168,18 +168,20 @@ def main():
                                 break
 
                         if not successful:
-                            if device.isActiveChargingSession():
-                                # Box hatte zuvor eine bestätigte Ladesession -> Fehlschlag ist verdächtig (voll/ausgesteckt)
+                            if device.isActiveChargingSession() or chargingPossible_local == 1:
+                                # Entweder gab es schon eine Session oder Laden ist vom Modus her gewollt (z.B. frisch aus DISABLED aufgewacht)
                                 any_box_charging = any(d.isCharging() for d in devices)
-                                if not any_box_charging:
+                                if not any_box_charging and device.isActiveChargingSession():
                                     log.info(f"Failed to restart charge on ID {device.getID()}. Assuming vehicle is full. Disabling.")
                                     if (chargemode != chargemanagercommon.DISABLED_MODE):
                                         chargemanagercommon.setChargemode(chargemanagercommon.DISABLED_MODE)
                                         device.setCharging(chargePowerValue, False)
                                         device.setActiveChargingSession(False)
                                         time.sleep(10)
+                                else:
+                                    log.info(f"ID {device.getID()}: Start attempt unsuccessful, but charging is requested (chargingPossible=1). Keeping active/retrying next cycle.")
                             else:
-                                # Box hatte nie eine Session -> einfach kein Auto hier, nichts tun
+                                # Box hatte nie eine Session und Laden ist nicht gewollt -> kein Auto da
                                 log.debug(f"ID {device.getID()}: Kein Fahrzeug erkannt, Startversuch wie erwartet erfolglos.")
 
                     device.setRetryCount(0)
