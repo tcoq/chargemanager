@@ -107,6 +107,14 @@ class Kebap30Controller(WallboxBase):
 
                 real_power = self.last_valid_power
 
+                # FALLBACK: Wenn die KEBA über Modbus keine Leistung liefert (z.B. wegen RFID-Sperre oder Register-Lücke),
+                # aber wir gerade aktiv laden wollen (bzw. ein Limit gesetzt ist und die Box aktiv ist),
+                # schätzen wir die Leistung anhand von Spannung, Stromstärke und Phasen ab, damit das Frontend nicht 0W anzeigt.
+                if real_power <= 50 and (self._charging_requested or self.activeChargingSession) and self.last_set_limit_a >= 6:
+                    estimated_phases = getattr(self, 'max_phases', 1)
+                    real_power = int(230 * self.last_set_limit_a * estimated_phases)
+                    log.debug(f"KEBA: Modbus power register is 0W, estimating {real_power}W based on {self.last_set_limit_a}A and {estimated_phases} phases")
+
                 # Plausibility check with debounce.
                 # If real power is flowing we trust that over any status register.
                 # This bypasses laggy status register updates or RFID-locked status bits.
